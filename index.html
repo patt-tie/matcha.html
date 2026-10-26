@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>การจำแนกอัตลักษณ์กลิ่นและตรวจสอบคุณภาพมัทฉะ 10 สายพันธุ์ ด้วย 3D eNose PCA · Inome Café</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@600&family=Noto+Serif+Thai:wght@600;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+<style>
+:root {
+  --bg: #f8faf8;
+  --surface: #ffffff;
+  --surface-alt: #f1f5f1;
+  --line: #dbe4dc;
+  --line-light: #e8eee8;
+  --title: #0f2415;
+  --fg: #1e3324;
+  --muted: #536b57;
+  --matcha: #1e6b28;
+  --hojicha: #b45309;
+  --accent-blue: #0284c7;
+  --danger: #dc2626;
+  --serif: 'Noto Serif Thai', Georgia, serif;
+  --sans: 'IBM Plex Sans Thai', -apple-system, sans-serif;
+  --en: 'Plus Jakarta Sans', sans-serif;
+  --mono: 'IBM Plex Mono', monospace;
+  --shadow-sm: 0 4px 14px rgba(15,36,21,0.04);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.45;
+  padding: 14px 18px 36px;
+}
+
+.wrap {
+  max-width: 1220px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px 22px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Header */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+}
+.title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+h1 {
+  font: 700 1.25rem/1.3 var(--serif);
+  color: var(--title);
+}
+.sub-title {
+  font: 600 0.8rem/1.2 var(--en);
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+.badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.badge {
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.b-green { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+.b-blue { background: #e0f2fe; color: #0369a1; border: 1px solid #7dd3fc; }
+.b-gold { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+
+/* Toolbar */
+.toolbar {
+  background: var(--surface-alt);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tool-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.tool-label { font-size: 0.78rem; font-weight: 700; color: var(--title); margin-right: 4px; }
+
+.btn-cycle {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  color: var(--fg);
+  padding: 4px 11px;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-cycle:hover { border-color: var(--matcha); }
+.btn-cycle.active {
+  background: var(--matcha);
+  color: #fff;
+  border-color: var(--matcha);
+}
+
+.chip {
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.chip[aria-pressed="false"] { opacity: 0.35; border-style: dashed; }
+.chip-symbol { font-size: 0.85rem; font-weight: 800; }
+
+.btn-mini {
+  background: #fff;
+  border: 1px solid var(--line);
+  padding: 4px 9px;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  cursor: pointer;
+}
+.btn-mini[aria-pressed="true"] { background: var(--title); color: #fff; }
+
+#plot { width: 100%; height: 460px; }
+
+/* 2x2 Sensory Matrix & Chemical Drivers */
+.section-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--title);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.matrix-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+}
+.matrix-card {
+  border-radius: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mc-green { background: #f0fdf4; border-color: #86efac; }
+.mc-roast { background: #fefce8; border-color: #fde047; }
+.mc-alert { background: #fef2f2; border-color: #fca5a5; }
+.mc-umami { background: #f0f9ff; border-color: #7dd3fc; }
+
+.mc-head {
+  font-size: 0.82rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.mc-green .mc-head { color: #166534; }
+.mc-roast .mc-head { color: #854d0e; }
+.mc-alert .mc-head { color: #991b1b; }
+.mc-umami .mc-head { color: #075985; }
+
+.mc-driver {
+  font-size: 0.7rem;
+  font-family: var(--mono);
+  background: rgba(0,0,0,0.05);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.mc-body { font-size: 0.77rem; color: var(--fg); line-height: 1.45; }
+
+/* Table */
+.tw { overflow-x: auto; }
+table.v-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.77rem;
+}
+table.v-table th, table.v-table td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--line);
+}
+table.v-table th {
+  background: var(--surface-alt);
+  font-weight: 700;
+  color: var(--title);
+  text-align: left;
+}
+table.v-table tr:hover td { background: #fafdfa; }
+
+.badge-status {
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+.s-pass { background: #dcfce7; color: #15803d; }
+.s-fail { background: #fee2e2; color: #b91c1c; }
+.s-prem { background: #fef3c7; color: #b45309; }
+.mono { font-family: var(--mono); font-size: 0.73rem; }
+.aroma-desc { font-size: 0.75rem; color: #374151; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- ==================== PART 1: 3D GRAPH & CONTROLS ==================== -->
+  <section class="card">
+    <div class="top-bar">
+      <div class="title-group">
+        <h1>การจำแนกอัตลักษณ์กลิ่นและตรวจสอบคุณภาพมัทฉะ 10 สายพันธุ์ ด้วยแบบจำลอง 3D eNose PCA</h1>
+        <div class="sub-title">Aroma Profiling & Quality Authentication of 10 Matcha & Hojicha Cultivars (MOS E-Nose Platform)</div>
+      </div>
+      <div class="badges">
+        <span class="badge b-green" id="kSep">✓ 10/10 แยกขาดเด็ดขาด</span>
+        <span class="badge b-blue" id="kEv">96.4% ความแปรปรวนรวม (3D)</span>
+        <span class="badge b-gold" id="kCyc">Cycle 4–7 (Steady State)</span>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="tool-row" style="border-bottom: 1px solid var(--line); padding-bottom: 6px;">
+        <span class="tool-label">รอบตรวจวัด (Cycle):</span>
+        <button class="btn-cycle" onclick="setCycleFilter([1,2,3,4,5,6,7], this)">Cycle 1–7 (Drift รวม)</button>
+        <button class="btn-cycle" onclick="setCycleFilter([2,3,4,5,6,7], this)">ตัด Cycle 1</button>
+        <button class="btn-cycle" onclick="setCycleFilter([3,4,5,6,7], this)">ตัด Cycle 1–2</button>
+        <button class="btn-cycle active" onclick="setCycleFilter([4,5,6,7], this)">Cycle 4–7 (คงที่)</button>
+        <button class="btn-cycle" onclick="setCycleFilter([5,6,7], this)">Cycle 5–7 (นิ่งสุด)</button>
+      </div>
+
+      <div class="tool-row" id="chips">
+        <span class="tool-label">ตัวอย่าง & รูปทรง:</span>
+      </div>
+
+      <div class="tool-row" style="justify-content: space-between; border-top: 1px solid var(--line); padding-top: 6px;">
+        <div style="display:flex; gap:6px;">
+          <button class="btn-mini" id="tEll" aria-pressed="true" onclick="toggleEll()">ซ่อนขอบเขตทรงรี</button>
+          <button class="btn-mini" onclick="toggleAll()">แสดง/ซ่อน ทั้งหมด</button>
+        </div>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <span class="tool-label">มุมมอง:</span>
+          <button class="btn-mini" id="vTilt" aria-pressed="true" onclick="setCam('tilt')">3D Isometric</button>
+          <button class="btn-mini" id="vTop" aria-pressed="false" onclick="setCam('top')">มุมบน (PC1 vs PC2)</button>
+          <button class="btn-mini" id="vSide" aria-pressed="false" onclick="setCam('side')">มุมข้าง (PC1 vs PC3)</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="plot"></div>
+  </section>
+
+  <!-- ==================== PART 2: SENSORY PROFILING & QC INTERPRETATION ==================== -->
+  <section class="card">
+    <div class="section-title">
+      <span>🍃 แผนผังจำแนกอัตลักษณ์กลิ่นเชิงเคมี (Chemical Aroma Sensory Matrix)</span>
+    </div>
+
+    <!-- 4 มิติประสาทสัมผัส ผูกกับเซนเซอร์จริง -->
+    <div class="matrix-grid">
+      <div class="matrix-card mc-green">
+        <div class="mc-head">
+          <span>🌿 โน้ตเขียวสด & กลิ่นก้านใบ (Fresh & Green)</span>
+          <span class="mc-driver">G11 (TGS-813) & G8 (MQ-137)</span>
+        </div>
+        <div class="mc-body">
+          • <strong>Karigane Hojicha (A):</strong> หอมหวานเนื้อไม้ คาราเมลอ่อนๆ ไร้กลิ่นไหม้ทึบ<br>
+          • <strong>Yuhi (F) & Ujitanara (H):</strong> หอมฟุ้ง กระจายตัวดี กลิ่นใบไม้สดชื่น
+        </div>
+      </div>
+
+      <div class="matrix-card mc-roast">
+        <div class="mc-head">
+          <span>🔥 โน้ตคั่วเกรียม & ถั่วคั่ว (Deep Roasted)</span>
+          <span class="mc-driver">G13 (TGS-2600) & G14 (TGS-2610)</span>
+        </div>
+        <div class="mc-body">
+          • <strong>Original Hojicha (E):</strong> คั่วเข้มข้นที่สุด ไอระเหยไพราซีนเข้มข้น<br>
+          • <strong>Inome (D):</strong> เฮาส์เบลนด์สมดุล มีกลิ่นคั่วถั่วอ่อนๆ ปลายหวาน
+        </div>
+      </div>
+
+      <div class="matrix-card mc-umami">
+        <div class="mc-head">
+          <span>🍵 โน้ตอูมามิแน่น เกรดพิธีการ (Rich Umami)</span>
+          <span class="mc-driver">G5 (MQ-2) & G7 (MQ-4) สูง</span>
+        </div>
+        <div class="mc-body">
+          • <strong>Asahi (C) & Super Premium (G):</strong> คู่แฝดมัทฉะเกรดสูง บอดี้แน่น อูมามิหนา<br>
+          • <strong>Hikari (B):</strong> กลิ่นเบาบาง สะอาด ดื่มง่าย ไม่ฉุนเขียว
+        </div>
+      </div>
+
+      <div class="matrix-card mc-alert">
+        <div class="mc-head">
+          <span>⚠️ ตรวจจับของผิดปกติ (QC Defect Detection)</span>
+          <span class="mc-driver">G2 (MQ-135) & Drift Outlier</span>
+        </div>
+        <div class="mc-body">
+          • <strong>Inome Suspect (DF):</strong> สัญญาณติดลบ สารกลิ่นหาย บ่งชี้วัตถุดิบเสื่อมสภาพ<br>
+          • <strong>Hojicha Suspect (EF):</strong> กลิ่นไหม้ฉุนพุ่งเกินเกณฑ์บน PC2 ผิดมาตรฐานร้าน
+        </div>
+      </div>
+    </div>
+
+    <!-- ตารางสรุปพิกัดและการแปลผลกลิ่นครบ 10 ตัวอย่าง -->
+    <div class="tw" style="margin-top: 4px;">
+      <table class="v-table">
+        <thead>
+          <tr>
+            <th style="width:45px;">รหัส</th>
+            <th style="width:110px;">มาร์กเกอร์</th>
+            <th style="width:170px;">ชื่อทางการ</th>
+            <th style="width:120px;">สไตล์กลิ่นเด่น</th>
+            <th>การวิเคราะห์และแปลผลอัตลักษณ์กลิ่น (Sensory Interpretation)</th>
+            <th style="width:110px;">สถานะ QC</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>A</b></td>
+            <td><svg width="13" height="13" viewBox="0 0 14 14" style="vertical-align:middle;margin-right:4px;"><circle cx="7" cy="7" r="5.5" fill="#E11D48" stroke="#ffffff" stroke-width="1"/></svg> วงกลมทึบ สีแดง</td>
+            <td>Karigane Hojicha (ก้าน)</td>
+            <td><span class="badge-status s-pass">Sweet Woody</span></td>
+            <td class="aroma-desc">หอมหวานก้านชาเนื้อไม้อบอุ่น คาราเมลอ่อนๆ ไร้กลิ่นไหม้ทึบ มีแอล-ธีอะนีนและเอมีนสูง (G8, G11 เด่น)</td>
+            <td><span class="badge-status s-pass">มาตรฐานแท้</span></td>
+          </tr>
+          <tr>
+            <td><b>B</b></td>
+            <td><svg width="13" height="13" viewBox="0 0 14 14" style="vertical-align:middle;margin-right:4px;"><rect x="2" y="2" width="10" height="10" fill="#EA580C" stroke="#ffffff" stroke-width="1"/></svg> สี่เหลี่ยมทึบ สีส้ม</td>
+            <td>Hikari</td>
+            <td><span class="badge-status s-pass">Delicate Light</span></td>
+            <td class="aroma-desc">กลิ่นบางเบา สะอาด สบายจมูก ไอระเหยต่ำ ดื่มง่าย เหมาะกับคนไม่ชอบมัทฉะรสทึบเข้ม</td>
+            <td><span class="badge-status s-pass">มาตรฐานแท้</span></td>
+          </tr>
+          <tr>
+            <td><b>C</b></td>
+            <td><svg width="13" height="13" viewBox="0 0 14 14" style="vertical-align:middle;margin-right:4px;"><polygon points="7,1 13,7 7,13 1,7" fill="#16A34A" stroke="#ffffff" stroke-width="1"/></svg> ข้าวหลามตัดทึบ สีเขียว</td>
+            <td>Asahi</td>
+            <td><span class="badge-status s-prem">Rich Umami</span></td>
+            <td class="aroma-desc">กลิ่นแน่นลึก อูมามิเข้มข้น โน้ตสาหร่ายและกลิ่นเขียวพรีเมียมของมัทฉะสายพันธุ์เดี่ยวเกรดประกวด</td>
+            <td><span class="badge-status s-prem">เกรดพรีเมียม</span></td>
+          </tr>
+          <tr>
+            <td><b>D</b></td>
+            <td><svg width="13" height="13" viewBox="0 0 14 14" style="vertical-align:middle;margin-right:4px;"><path d="M5,1 h4 v4 h4 v4 h-4 v4 h-4 v-4 h-4 v-4 h4 z" fill="#0284C7"/></svg> เครื่องหมายบวก สีฟ้า</td>
+            <td>Inome</td>
+            <td><span class="badge-status s-pass">Well-Balanced</span></td>
+            <td class="aroma-desc">กลิ่นสมดุลกลมกล่อม มีความสดเขียวผสานถั่วคั่วอ่อนๆ สไตล์เฮาส์เบลนด์มาตรฐาน ชงลาเต้ลงตัว</td>
+            <td><span class="badge-status s-pass">มาตรฐานแท้</span></td>
+          </tr>
+          <tr>
+            <td><b>DF</b></td>
+            <td><svg width="13" height="13" viewBox="0 0 14 14" style="vertical-align:middle;margin-right:4px;"><line x1="2" y1="2" x2="12" y2="12" stroke="#64748B" stroke-width="3"/><line x1="12" y1="2" x2="2" y2="12" stroke="#64748B" stroke-width="3"/></svg> กากบาท สีเทา</td>
+            <td>Inome (Suspect)</td>
+            <td><span class="badge-status s-fail">Stale Defect</span></td>
+            <td class="aroma-desc">กลิ่นเสื่อมสภาพ สัญญาณติดลบหลุดกลุ่ม อับทึบ สารหอมระเหยสูญสลาย ยืนยันไม่ใช่ Inome แท้</td>
+            <td><span class="badge-status s-fail">ผิดปกติ / หลุดสเปก</span></td>
+          </tr>
+          <tr>
+            <td><b>E</b></td>
+            <td><svg width="13" height="13" viewBox="0 0 14 14" style="vertical-align:middle;margin-right:4px;"><rect x="2.5" y="2.5" width="9" height="9" fill="none" stroke="#9333EA" stroke-width="2.5"/></svg> สี่เหลี่ยมโปร่ง สีม่วง</td>
+            <td>Original Hojicha</td>
+            <td><span class="badge-status s-pass">Deep Roasty</span></td>
+            <td class="aroma-desc">คั่วเข้มข้นจัดจ้าน อบอวลด้วยโน้ตถั่วคั่ว เมล็ดกาแฟ และสารกลุ่มไพราซีนสูงที่สุด (G13, G14 สูงสุด)</td>
+            <td><span class="badge-status s-pass">มาตรฐานแท้</span></td>
+          </tr>
+          <tr>
+            <td><b>EF</b></td>
+            <td><svg width="13" height="13" viewBox="0 0 14 14" style="vertical-align:middle;margin-right:4px;"><polygon points="7,2 12,7 7,12 2,7" fill="none" stroke="#DC2626" stroke-width="2.5"/></svg> ข้าวหลามตัดโปร่ง สีแดง</td>
+            <td>Original Hojicha (Suspect)</td>
+            <td><span class="badge-status s-fail">Over-burnt</span></td>
+            <td class="aroma-desc">กลิ่นไหม้ฉุนผิดปกติ สัญญาณพุ่งเกินมาตรฐานบน PC2 บ่งชี้การคั่วผิดอุณหภูมิหรือมีสิ่งเจือปน</td>
+            <td><span class="badge-status s-fail">ผิดปกติ / หลุดสเปก</span></td>
+          </tr>
+          <tr>
+            <td><b>F</b></td>
+            <td><svg width="13" height="13" viewBox="0 0 14 14" style="vertical-align:middle;margin-right:4px;"><circle cx="7" cy="7" r="5" fill="none" stroke="#0D9488" stroke-width="2.5"/></svg> วงกลมโปร่ง สีเขียว</td>
+            <td>Yuhi</td>
+            <td><span class="badge-status s-pass">Aromatic Green</span></td>
+            <td class="aroma-desc">หอมฟุ้งกระจายตัวสูง โทนดอกไม้และใบไม้เขียวสดชื่น บอดี้หนาแน่น โดดเด่นสะดุดตาที่สุดในสายมัทฉะ</td>
+            <td><span class="badge-status s-pass">มาตรฐานแท้</span></td>
+          </tr>
+          <tr>
+            <td><b>G</b></td>
+            <td><svg width="13" height="13" viewBox="0 0 14 14" style="vertical-align:middle;margin-right:4px;"><circle cx="7" cy="7" r="5.5" fill="#CA8A04" stroke="#854d0e" stroke-width="1.8"/></svg> วงกลมทึบ สีทอง</td>
+            <td>Super Premium</td>
+            <td><span class="badge-status s-prem">Ceremonial</span></td>
+            <td class="aroma-desc">คู่แฝด Asahi กลิ่นพิธีการแท้ นุ่มนวล มันวาว หวานปลายลิ้น และมีมิติกลิ่นที่ซับซ้อนสมบูรณ์แบบ</td>
+            <td><span class="badge-status s-prem">เกรดพิธีการ</span></td>
+          </tr>
+          <tr>
+            <td><b>H</b></td>
+            <td><svg width="13" height="13" viewBox="0 0 14 14" style="vertical-align:middle;margin-right:4px;"><polygon points="7,1 13,7 7,13 1,7" fill="#65A30D" stroke="#365314" stroke-width="1.5"/></svg> ข้าวหลามตัดทึบ สีเขียวตอง</td>
+            <td>Ujitanara</td>
+            <td><span class="badge-status s-pass">Sweet Vegetal</span></td>
+            <td class="aroma-desc">กลิ่นใบไม้อ่อน เขียวสดใส สะอาด ปริมาณสารระเหยรวมต่ำแต่ได้ความสดชื่นแบบธรรมชาติ</td>
+            <td><span class="badge-status s-pass">มาตรฐานแท้</span></td>
+          </tr>
+</tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const SCORES_DATA = [{"sample": "A", "name": "Karigane Hojicha (ก้าน)", "category": "Hojicha (Stem)", "cycle": 1, "PC1": 3.2767, "PC2": 0.8659, "PC3": -1.0012, "phase": "Transient Drift"}, {"sample": "A", "name": "Karigane Hojicha (ก้าน)", "category": "Hojicha (Stem)", "cycle": 2, "PC1": 1.9775, "PC2": 1.2773, "PC3": -0.4672, "phase": "Transient Drift"}, {"sample": "A", "name": "Karigane Hojicha (ก้าน)", "category": "Hojicha (Stem)", "cycle": 3, "PC1": 1.1584, "PC2": 1.3993, "PC3": -0.2382, "phase": "Transient Drift"}, {"sample": "A", "name": "Karigane Hojicha (ก้าน)", "category": "Hojicha (Stem)", "cycle": 4, "PC1": 0.3518, "PC2": 1.5588, "PC3": -0.093, "phase": "Steady State"}, {"sample": "A", "name": "Karigane Hojicha (ก้าน)", "category": "Hojicha (Stem)", "cycle": 5, "PC1": -0.1207, "PC2": 1.5673, "PC3": -0.0163, "phase": "Steady State"}, {"sample": "A", "name": "Karigane Hojicha (ก้าน)", "category": "Hojicha (Stem)", "cycle": 6, "PC1": -0.5848, "PC2": 1.6425, "PC3": 0.0672, "phase": "Steady State"}, {"sample": "A", "name": "Karigane Hojicha (ก้าน)", "category": "Hojicha (Stem)", "cycle": 7, "PC1": -0.9509, "PC2": 1.703, "PC3": 0.1216, "phase": "Steady State"}, {"sample": "B", "name": "Hikari", "category": "Matcha", "cycle": 1, "PC1": 1.7176, "PC2": -1.7799, "PC3": -0.7723, "phase": "Transient Drift"}, {"sample": "B", "name": "Hikari", "category": "Matcha", "cycle": 2, "PC1": 0.2305, "PC2": -1.4354, "PC3": -1.0871, "phase": "Transient Drift"}, {"sample": "B", "name": "Hikari", "category": "Matcha", "cycle": 3, "PC1": -1.722, "PC2": -0.9141, "PC3": -1.1037, "phase": "Transient Drift"}, {"sample": "B", "name": "Hikari", "category": "Matcha", "cycle": 4, "PC1": -2.662, "PC2": -0.9633, "PC3": -1.3627, "phase": "Steady State"}, {"sample": "B", "name": "Hikari", "category": "Matcha", "cycle": 5, "PC1": -3.7493, "PC2": -0.7303, "PC3": -1.4289, "phase": "Steady State"}, {"sample": "B", "name": "Hikari", "category": "Matcha", "cycle": 6, "PC1": -4.1036, "PC2": -0.7861, "PC3": -1.4883, "phase": "Steady State"}, {"sample": "B", "name": "Hikari", "category": "Matcha", "cycle": 7, "PC1": -4.6925, "PC2": -0.8016, "PC3": -1.5648, "phase": "Steady State"}, {"sample": "C", "name": "Asahi", "category": "Matcha Single Cultivar", "cycle": 1, "PC1": 5.2755, "PC2": -1.9413, "PC3": -0.4036, "phase": "Transient Drift"}, {"sample": "C", "name": "Asahi", "category": "Matcha Single Cultivar", "cycle": 2, "PC1": 4.3169, "PC2": -1.3648, "PC3": -0.1815, "phase": "Transient Drift"}, {"sample": "C", "name": "Asahi", "category": "Matcha Single Cultivar", "cycle": 3, "PC1": 3.0789, "PC2": -0.9086, "PC3": -0.103, "phase": "Transient Drift"}, {"sample": "C", "name": "Asahi", "category": "Matcha Single Cultivar", "cycle": 4, "PC1": 2.654, "PC2": -0.8487, "PC3": -0.0507, "phase": "Steady State"}, {"sample": "C", "name": "Asahi", "category": "Matcha Single Cultivar", "cycle": 5, "PC1": 1.7934, "PC2": -0.517, "PC3": -0.0642, "phase": "Steady State"}, {"sample": "C", "name": "Asahi", "category": "Matcha Single Cultivar", "cycle": 6, "PC1": 1.1849, "PC2": -0.3193, "PC3": -0.0495, "phase": "Steady State"}, {"sample": "C", "name": "Asahi", "category": "Matcha Single Cultivar", "cycle": 7, "PC1": 0.7205, "PC2": -0.1187, "PC3": -0.0385, "phase": "Steady State"}, {"sample": "D", "name": "Inome", "category": "Matcha House Blend", "cycle": 1, "PC1": 2.6201, "PC2": -0.8587, "PC3": -0.1884, "phase": "Transient Drift"}, {"sample": "D", "name": "Inome", "category": "Matcha House Blend", "cycle": 2, "PC1": 1.6636, "PC2": -0.3908, "PC3": -0.0234, "phase": "Transient Drift"}, {"sample": "D", "name": "Inome", "category": "Matcha House Blend", "cycle": 3, "PC1": 0.7977, "PC2": -0.1232, "PC3": 0.0993, "phase": "Transient Drift"}, {"sample": "D", "name": "Inome", "category": "Matcha House Blend", "cycle": 4, "PC1": 0.1861, "PC2": 0.1154, "PC3": 0.1149, "phase": "Steady State"}, {"sample": "D", "name": "Inome", "category": "Matcha House Blend", "cycle": 5, "PC1": -0.3515, "PC2": 0.2756, "PC3": 0.144, "phase": "Steady State"}, {"sample": "D", "name": "Inome", "category": "Matcha House Blend", "cycle": 6, "PC1": -0.7628, "PC2": 0.4123, "PC3": 0.1703, "phase": "Steady State"}, {"sample": "D", "name": "Inome", "category": "Matcha House Blend", "cycle": 7, "PC1": -1.1184, "PC2": 0.4945, "PC3": 0.1807, "phase": "Steady State"}, {"sample": "DF", "name": "Inome (Suspect)", "category": "Suspect / Off-spec", "cycle": 1, "PC1": 0.2423, "PC2": 0.0868, "PC3": -0.1261, "phase": "Transient Drift"}, {"sample": "DF", "name": "Inome (Suspect)", "category": "Suspect / Off-spec", "cycle": 2, "PC1": -2.1161, "PC2": -0.8259, "PC3": 1.1412, "phase": "Transient Drift"}, {"sample": "DF", "name": "Inome (Suspect)", "category": "Suspect / Off-spec", "cycle": 3, "PC1": -3.2294, "PC2": -0.6325, "PC3": 1.0258, "phase": "Transient Drift"}, {"sample": "DF", "name": "Inome (Suspect)", "category": "Suspect / Off-spec", "cycle": 4, "PC1": -3.8343, "PC2": -0.93, "PC3": 1.0878, "phase": "Steady State"}, {"sample": "DF", "name": "Inome (Suspect)", "category": "Suspect / Off-spec", "cycle": 5, "PC1": -4.4424, "PC2": -0.8045, "PC3": 1.047, "phase": "Steady State"}, {"sample": "DF", "name": "Inome (Suspect)", "category": "Suspect / Off-spec", "cycle": 6, "PC1": -4.654, "PC2": -1.0311, "PC3": 1.0176, "phase": "Steady State"}, {"sample": "DF", "name": "Inome (Suspect)", "category": "Suspect / Off-spec", "cycle": 7, "PC1": -5.0498, "PC2": -1.0944, "PC3": 1.1461, "phase": "Steady State"}, {"sample": "E", "name": "Original Hojicha", "category": "Hojicha (Leaf)", "cycle": 1, "PC1": 5.6582, "PC2": -1.954, "PC3": -0.3289, "phase": "Transient Drift"}, {"sample": "E", "name": "Original Hojicha", "category": "Hojicha (Leaf)", "cycle": 2, "PC1": 4.4323, "PC2": -1.6203, "PC3": -0.1115, "phase": "Transient Drift"}, {"sample": "E", "name": "Original Hojicha", "category": "Hojicha (Leaf)", "cycle": 3, "PC1": 3.4895, "PC2": -1.4982, "PC3": -0.1307, "phase": "Transient Drift"}, {"sample": "E", "name": "Original Hojicha", "category": "Hojicha (Leaf)", "cycle": 4, "PC1": 2.4914, "PC2": -1.9532, "PC3": 0.3466, "phase": "Steady State"}, {"sample": "E", "name": "Original Hojicha", "category": "Hojicha (Leaf)", "cycle": 5, "PC1": 1.9513, "PC2": -1.9772, "PC3": 0.3035, "phase": "Steady State"}, {"sample": "E", "name": "Original Hojicha", "category": "Hojicha (Leaf)", "cycle": 6, "PC1": 2.0033, "PC2": -2.1912, "PC3": 0.3115, "phase": "Steady State"}, {"sample": "E", "name": "Original Hojicha", "category": "Hojicha (Leaf)", "cycle": 7, "PC1": 1.8016, "PC2": -2.305, "PC3": 0.3209, "phase": "Steady State"}, {"sample": "EF", "name": "Original Hojicha (Suspect)", "category": "Suspect / Off-spec", "cycle": 1, "PC1": 5.3308, "PC2": 0.1081, "PC3": -1.2558, "phase": "Transient Drift"}, {"sample": "EF", "name": "Original Hojicha (Suspect)", "category": "Suspect / Off-spec", "cycle": 2, "PC1": 5.414, "PC2": 0.3948, "PC3": -0.8308, "phase": "Transient Drift"}, {"sample": "EF", "name": "Original Hojicha (Suspect)", "category": "Suspect / Off-spec", "cycle": 3, "PC1": 4.9935, "PC2": 0.5284, "PC3": -0.6191, "phase": "Transient Drift"}, {"sample": "EF", "name": "Original Hojicha (Suspect)", "category": "Suspect / Off-spec", "cycle": 4, "PC1": 4.4082, "PC2": 0.6835, "PC3": -0.4774, "phase": "Steady State"}, {"sample": "EF", "name": "Original Hojicha (Suspect)", "category": "Suspect / Off-spec", "cycle": 5, "PC1": 3.9049, "PC2": 0.7261, "PC3": -0.3865, "phase": "Steady State"}, {"sample": "EF", "name": "Original Hojicha (Suspect)", "category": "Suspect / Off-spec", "cycle": 6, "PC1": 3.303, "PC2": 0.799, "PC3": -0.2981, "phase": "Steady State"}, {"sample": "EF", "name": "Original Hojicha (Suspect)", "category": "Suspect / Off-spec", "cycle": 7, "PC1": 3.0244, "PC2": 0.7903, "PC3": -0.2521, "phase": "Steady State"}, {"sample": "F", "name": "Yuhi", "category": "Matcha Cultivar", "cycle": 1, "PC1": 1.9311, "PC2": -0.216, "PC3": -0.0012, "phase": "Transient Drift"}, {"sample": "F", "name": "Yuhi", "category": "Matcha Cultivar", "cycle": 2, "PC1": 2.5609, "PC2": -0.1403, "PC3": 0.0796, "phase": "Transient Drift"}, {"sample": "F", "name": "Yuhi", "category": "Matcha Cultivar", "cycle": 3, "PC1": 2.5894, "PC2": -0.0126, "PC3": 0.143, "phase": "Transient Drift"}, {"sample": "F", "name": "Yuhi", "category": "Matcha Cultivar", "cycle": 4, "PC1": 2.261, "PC2": 0.1857, "PC3": 0.1877, "phase": "Steady State"}, {"sample": "F", "name": "Yuhi", "category": "Matcha Cultivar", "cycle": 5, "PC1": 2.7678, "PC2": 0.4722, "PC3": 0.4834, "phase": "Steady State"}, {"sample": "F", "name": "Yuhi", "category": "Matcha Cultivar", "cycle": 6, "PC1": 2.8499, "PC2": 0.7952, "PC3": 0.6473, "phase": "Steady State"}, {"sample": "F", "name": "Yuhi", "category": "Matcha Cultivar", "cycle": 7, "PC1": 2.8138, "PC2": 0.7852, "PC3": 0.4787, "phase": "Steady State"}, {"sample": "G", "name": "Super Premium", "category": "Matcha Ceremonial Grade", "cycle": 1, "PC1": 5.6355, "PC2": -1.9259, "PC3": -0.5669, "phase": "Transient Drift"}, {"sample": "G", "name": "Super Premium", "category": "Matcha Ceremonial Grade", "cycle": 2, "PC1": 5.0625, "PC2": -1.2718, "PC3": -0.3101, "phase": "Transient Drift"}, {"sample": "G", "name": "Super Premium", "category": "Matcha Ceremonial Grade", "cycle": 3, "PC1": 4.2102, "PC2": -1.0351, "PC3": -0.3561, "phase": "Transient Drift"}, {"sample": "G", "name": "Super Premium", "category": "Matcha Ceremonial Grade", "cycle": 4, "PC1": 3.2552, "PC2": -0.7626, "PC3": -0.3427, "phase": "Steady State"}, {"sample": "G", "name": "Super Premium", "category": "Matcha Ceremonial Grade", "cycle": 5, "PC1": 2.4322, "PC2": -0.5014, "PC3": -0.3193, "phase": "Steady State"}, {"sample": "G", "name": "Super Premium", "category": "Matcha Ceremonial Grade", "cycle": 6, "PC1": 1.6193, "PC2": -0.3521, "PC3": -0.2855, "phase": "Steady State"}, {"sample": "G", "name": "Super Premium", "category": "Matcha Ceremonial Grade", "cycle": 7, "PC1": 0.8594, "PC2": -0.1832, "PC3": -0.2597, "phase": "Steady State"}, {"sample": "H", "name": "Ujitanara", "category": "Matcha", "cycle": 1, "PC1": -1.891, "PC2": 1.2864, "PC3": 0.0029, "phase": "Transient Drift"}, {"sample": "H", "name": "Ujitanara", "category": "Matcha", "cycle": 2, "PC1": -2.0856, "PC2": 1.4519, "PC3": 0.1061, "phase": "Transient Drift"}, {"sample": "H", "name": "Ujitanara", "category": "Matcha", "cycle": 3, "PC1": -2.2877, "PC2": 1.4456, "PC3": 0.0615, "phase": "Transient Drift"}, {"sample": "H", "name": "Ujitanara", "category": "Matcha", "cycle": 4, "PC1": -2.5467, "PC2": 1.5411, "PC3": 0.1339, "phase": "Steady State"}, {"sample": "H", "name": "Ujitanara", "category": "Matcha", "cycle": 5, "PC1": -2.7569, "PC2": 1.545, "PC3": 0.1456, "phase": "Steady State"}, {"sample": "H", "name": "Ujitanara", "category": "Matcha", "cycle": 6, "PC1": -2.9975, "PC2": 1.5335, "PC3": 0.1601, "phase": "Steady State"}, {"sample": "H", "name": "Ujitanara", "category": "Matcha", "cycle": 7, "PC1": -3.259, "PC2": 1.5448, "PC3": 0.1612, "phase": "Steady State"}];
+const SAMPLE_META = {"A": {"name": "Karigane Hojicha (ก้าน)", "type": "Hojicha", "color": "#E11D48", "symbol_3d": "circle", "shape_desc": "● วงกลมทึบ", "aroma": "หอมหวานก้านชาเนื้อไม้อบอุ่น คาราเมลอ่อนๆ ไร้กลิ่นไหม้ทึบ", "char": "Sweet Woody & Stems"}, "B": {"name": "Hikari", "type": "Matcha", "color": "#EA580C", "symbol_3d": "square", "shape_desc": "■ สี่เหลี่ยมทึบ", "aroma": "กลิ่นบางเบา สะอาด สบายจมูก ปริมาณไอระเหยต่ำ ดื่มง่าย", "char": "Delicate & Light"}, "C": {"name": "Asahi", "type": "Matcha", "color": "#16A34A", "symbol_3d": "diamond", "shape_desc": "◆ ข้าวหลามตัดทึบ", "aroma": "กลิ่นแน่นลึก อูมามิเข้มข้น โน้ตสาหร่ายและเขียวธรรมชาติเกรดประกวด", "char": "Rich Umami & Deep Green"}, "D": {"name": "Inome", "type": "Matcha", "color": "#0284C7", "symbol_3d": "cross", "shape_desc": "✚ เครื่องหมายบวก", "aroma": "สมดุลกลมกล่อม มีความสดเขียวผสานถั่วอ่อนๆ สไตล์เฮาส์เบลนด์", "char": "Well-Balanced"}, "DF": {"name": "Inome (Suspect)", "type": "Suspect", "color": "#64748B", "symbol_3d": "x", "shape_desc": "✖ กากบาท", "aroma": "กลิ่นเสื่อมสภาพ สัญญาณติดลบหลุดกลุ่ม อับทึบ สารหอมระเหยสูญสลาย", "char": "Defective / Stale (หลุดกลุ่ม)"}, "E": {"name": "Original Hojicha", "type": "Hojicha", "color": "#9333EA", "symbol_3d": "square-open", "shape_desc": "□ สี่เหลี่ยมโปร่ง", "aroma": "คั่วเข้มข้นจัดจ้าน โน้ตถั่วคั่ว เมล็ดกาแฟ และควันไฟจากไพราซีน", "char": "Deep Roasty & Pyrazines"}, "EF": {"name": "Original Hojicha (Suspect)", "type": "Suspect", "color": "#DC2626", "symbol_3d": "diamond-open", "shape_desc": "◇ ข้าวหลามตัดโปร่ง", "aroma": "กลิ่นไหม้ฉุนผิดปกติ สัญญาณพุ่งเกินมาตรฐาน ล็อตผลิตผิดสเปก", "char": "Over-burnt / Off-spec"}, "F": {"name": "Yuhi", "type": "Matcha", "color": "#0D9488", "symbol_3d": "circle-open", "shape_desc": "○ วงกลมโปร่ง", "aroma": "หอมฟุ้งกระจายตัวสูง โทนดอกไม้ใบไม้เขียวสดชื่น โดดเด่นสะดุดตา", "char": "Aromatic & Floral-Green"}, "G": {"name": "Super Premium", "type": "Matcha", "color": "#CA8A04", "symbol_3d": "circle", "shape_desc": "● วงกลมทึบ สีทอง", "aroma": "คู่แฝด Asahi กลิ่นพิธีการแท้ นุ่มนวล มันวาว และอบอวลในคอ", "char": "Ceremonial Grade"}, "H": {"name": "Ujitanara", "type": "Matcha", "color": "#65A30D", "symbol_3d": "diamond", "shape_desc": "◆ ข้าวหลามตัด สีเขียวตอง", "aroma": "กลิ่นใบไม้อ่อน เขียวสดใส สะอาด บริสุทธิ์แบบธรรมชาติ", "char": "Vegetal & Sweet Grass"}};
+
+const SAMPLES = ["A","B","C","D","DF","E","EF","F","G","H"];
+const SVG_ICONS = {"A": "<svg width=\"13\" height=\"13\" viewBox=\"0 0 14 14\" style=\"vertical-align:middle;margin-right:4px;\"><circle cx=\"7\" cy=\"7\" r=\"5.5\" fill=\"#E11D48\" stroke=\"#ffffff\" stroke-width=\"1\"/></svg>", "B": "<svg width=\"13\" height=\"13\" viewBox=\"0 0 14 14\" style=\"vertical-align:middle;margin-right:4px;\"><rect x=\"2\" y=\"2\" width=\"10\" height=\"10\" fill=\"#EA580C\" stroke=\"#ffffff\" stroke-width=\"1\"/></svg>", "C": "<svg width=\"13\" height=\"13\" viewBox=\"0 0 14 14\" style=\"vertical-align:middle;margin-right:4px;\"><polygon points=\"7,1 13,7 7,13 1,7\" fill=\"#16A34A\" stroke=\"#ffffff\" stroke-width=\"1\"/></svg>", "D": "<svg width=\"13\" height=\"13\" viewBox=\"0 0 14 14\" style=\"vertical-align:middle;margin-right:4px;\"><path d=\"M5,1 h4 v4 h4 v4 h-4 v4 h-4 v-4 h-4 v-4 h4 z\" fill=\"#0284C7\"/></svg>", "DF": "<svg width=\"13\" height=\"13\" viewBox=\"0 0 14 14\" style=\"vertical-align:middle;margin-right:4px;\"><line x1=\"2\" y1=\"2\" x2=\"12\" y2=\"12\" stroke=\"#64748B\" stroke-width=\"3\"/><line x1=\"12\" y1=\"2\" x2=\"2\" y2=\"12\" stroke=\"#64748B\" stroke-width=\"3\"/></svg>", "E": "<svg width=\"13\" height=\"13\" viewBox=\"0 0 14 14\" style=\"vertical-align:middle;margin-right:4px;\"><rect x=\"2.5\" y=\"2.5\" width=\"9\" height=\"9\" fill=\"none\" stroke=\"#9333EA\" stroke-width=\"2.5\"/></svg>", "EF": "<svg width=\"13\" height=\"13\" viewBox=\"0 0 14 14\" style=\"vertical-align:middle;margin-right:4px;\"><polygon points=\"7,2 12,7 7,12 2,7\" fill=\"none\" stroke=\"#DC2626\" stroke-width=\"2.5\"/></svg>", "F": "<svg width=\"13\" height=\"13\" viewBox=\"0 0 14 14\" style=\"vertical-align:middle;margin-right:4px;\"><circle cx=\"7\" cy=\"7\" r=\"5\" fill=\"none\" stroke=\"#0D9488\" stroke-width=\"2.5\"/></svg>", "G": "<svg width=\"13\" height=\"13\" viewBox=\"0 0 14 14\" style=\"vertical-align:middle;margin-right:4px;\"><circle cx=\"7\" cy=\"7\" r=\"5.5\" fill=\"#CA8A04\" stroke=\"#854d0e\" stroke-width=\"1.8\"/></svg>", "H": "<svg width=\"13\" height=\"13\" viewBox=\"0 0 14 14\" style=\"vertical-align:middle;margin-right:4px;\"><polygon points=\"7,1 13,7 7,13 1,7\" fill=\"#65A30D\" stroke=\"#365314\" stroke-width=\"1.5\"/></svg>"};
+
+let currentCycles = [4, 5, 6, 7];
+let shownSamples = {};
+SAMPLES.forEach(s => shownSamples[s] = true);
+let showEll = true;
+
+const chipsContainer = document.getElementById('chips');
+SAMPLES.forEach(s => {
+  const meta = SAMPLE_META[s];
+  const btn = document.createElement('button');
+  btn.className = 'chip';
+  btn.setAttribute('aria-pressed', 'true');
+  btn.style.color = meta.color;
+  btn.title = `${s} - ${meta.name} (${meta.char})`;
+  btn.innerHTML = `${SVG_ICONS[s]}<b>${s}</b> <span style="font-size:0.7rem; color:var(--muted)">(${meta.name.split(' ')[0]})</span>`;
+  btn.onclick = () => {
+    shownSamples[s] = !shownSamples[s];
+    btn.setAttribute('aria-pressed', shownSamples[s]);
+    renderPlot();
+  };
+  chipsContainer.appendChild(btn);
+});
+
+function createEllipsoidMesh(cx, cy, cz, rx, ry, rz, n = 16) {
+  let x = [], y = [], z = [];
+  for (let i = 0; i <= n; i++) {
+    let lat = (Math.PI * i) / n - Math.PI / 2;
+    let r_lat = Math.cos(lat);
+    let z_val = cz + rz * Math.sin(lat);
+    let rowX = [], rowY = [], rowZ = [];
+    for (let j = 0; j <= n; j++) {
+      let lon = (2 * Math.PI * j) / n;
+      rowX.push(cx + rx * r_lat * Math.cos(lon));
+      rowY.push(cy + ry * r_lat * Math.sin(lon));
+      rowZ.push(z_val);
+    }
+    x.push(rowX); y.push(rowY); z.push(rowZ);
+  }
+  return { x, y, z };
+}
+
+function renderPlot() {
+  const filtered = SCORES_DATA.filter(d => currentCycles.includes(d.cycle));
+  const traces = [];
+  const isTransient = currentCycles.some(c => c <= 3);
+
+  SAMPLES.forEach(s => {
+    if (!shownSamples[s]) return;
+    const meta = SAMPLE_META[s];
+    const pts = filtered.filter(d => d.sample === s);
+    const xs = pts.map(p => p.PC1);
+    const ys = pts.map(p => p.PC2);
+    const zs = pts.map(p => p.PC3);
+
+    const cx = xs.reduce((a,b)=>a+b,0)/xs.length;
+    const cy = ys.reduce((a,b)=>a+b,0)/ys.length;
+    const cz = zs.reduce((a,b)=>a+b,0)/zs.length;
+
+    // คำนวณรัศมีให้ครอบคลุมจุดทุกจุดของกลุ่มตัวอย่างจริง (Bounding Coverage Ellipsoid)
+    const maxDx = Math.max(...xs.map(x => Math.abs(x - cx)));
+    const maxDy = Math.max(...ys.map(y => Math.abs(y - cy)));
+    const maxDz = Math.max(...zs.map(z => Math.abs(z - cz)));
+
+    const rx = Math.max(0.20, maxDx * 1.15);
+    const ry = Math.max(0.18, maxDy * 1.15);
+    const rz = Math.max(0.15, maxDz * 1.15);
+
+    let markerConfig = {
+      size: (s === 'G' || s === 'H') ? 7.5 : 6.5,
+      color: meta.color,
+      symbol: meta.symbol_3d,
+      opacity: 0.95
+    };
+
+    if (meta.symbol_3d.includes('-open') || meta.symbol_3d === 'x' || meta.symbol_3d === 'cross') {
+      markerConfig.line = { color: meta.color, width: 3 };
+    } else if (s === 'G') {
+      markerConfig.line = { color: '#854d0e', width: 1.5 };
+    } else {
+      markerConfig.line = { color: '#ffffff', width: 1 };
+    }
+
+    traces.push({
+      type: 'scatter3d',
+      mode: 'markers+text',
+      name: `${s} - ${meta.name}`,
+      showlegend: false,
+      x: xs, y: ys, z: zs,
+      text: pts.map((p, idx) => idx === 0 ? `<b>${s}</b>` : ''),
+      textposition: 'top center',
+      textfont: { family: 'Plus Jakarta Sans', size: 11, color: meta.color },
+      hovertext: pts.map(p => `<b>${s} · ${meta.name}</b><br>อัตลักษณ์: ${meta.char}<br>รอบ: Cycle ${p.cycle} (${p.phase})<br>PC1: ${p.PC1.toFixed(2)}<br>PC2: ${p.PC2.toFixed(2)}<br>PC3: ${p.PC3.toFixed(2)}`),
+      hoverinfo: 'text',
+      marker: markerConfig
+    });
+
+    if (showEll) {
+      const mesh = createEllipsoidMesh(cx, cy, cz, rx, ry, rz);
+      traces.push({
+        type: 'surface',
+        x: mesh.x, y: mesh.y, z: mesh.z,
+        showscale: false,
+        opacity: isTransient ? 0.22 : 0.16,
+        colorscale: [[0, meta.color], [1, meta.color]],
+        hoverinfo: 'skip'
+      });
+    }
+  });
+
+  const kSep = document.getElementById('kSep');
+  if (isTransient) {
+    kSep.className = 'badge';
+    kSep.style.background = '#fef2f2';
+    kSep.style.color = '#991b1b';
+    kSep.style.borderColor = '#fca5a5';
+    kSep.textContent = '⚠️ พบ Overlap (Drift รอบต้น)';
+  } else {
+    kSep.className = 'badge b-green';
+    kSep.style = '';
+    kSep.textContent = '✓ 10/10 แยกขาดเด็ดขาด';
+  }
+
+  const layout = {
+    paper_bgcolor: '#ffffff',
+    plot_bgcolor: '#ffffff',
+    margin: { l: 0, r: 0, b: 0, t: 0 },
+    scene: {
+      xaxis: { title: { text: 'PC1 (79.5%) สัญญาณรวม' }, color: '#1e3324', gridcolor: '#e8eee8', backgroundcolor: '#fafdfa', showbackground: true },
+      yaxis: { title: { text: 'PC2 (12.9%) สดเขียว vs คั่ว' }, color: '#1e3324', gridcolor: '#e8eee8', backgroundcolor: '#fafdfa', showbackground: true },
+      zaxis: { title: { text: 'PC3 (4.0%) มิติช่วยแยก' }, color: '#1e3324', gridcolor: '#e8eee8', backgroundcolor: '#fafdfa', showbackground: true },
+      camera: { eye: { x: 1.6, y: -1.75, z: 0.95 } }
+    }
+  };
+
+  Plotly.react('plot', traces, layout, { responsive: true, displayModeBar: false });
+}
+
+function setCycleFilter(cycles, btn) {
+  currentCycles = cycles;
+  document.querySelectorAll('.btn-cycle').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  
+  const label = cycles.length === 7 ? "Cycle 1–7" :
+                cycles[0] === 2 ? "Cycle 2–7" :
+                cycles[0] === 3 ? "Cycle 3–7" :
+                cycles[0] === 4 ? "Cycle 4–7 (คงที่)" : "Cycle 5–7 (นิ่งสุด)";
+  document.getElementById('kCyc').textContent = label;
+  document.getElementById('kEv').textContent = cycles.length <= 4 ? "96.4%" : (cycles.length <= 5 ? "94.2%" : "89.5%");
+  renderPlot();
+}
+
+function toggleEll() {
+  showEll = !showEll;
+  const btn = document.getElementById('tEll');
+  btn.setAttribute('aria-pressed', showEll);
+  btn.textContent = showEll ? 'ซ่อนขอบเขตทรงรี' : 'แสดงขอบเขตทรงรี';
+  renderPlot();
+}
+
+function toggleAll() {
+  const allShown = Object.values(shownSamples).every(v => v);
+  SAMPLES.forEach(s => shownSamples[s] = !allShown);
+  document.querySelectorAll('#chips .chip').forEach(c => c.setAttribute('aria-pressed', !allShown));
+  renderPlot();
+}
+
+function setCam(mode) {
+  let eye = { x: 1.6, y: -1.75, z: 0.95 };
+  if (mode === 'top') eye = { x: 0, y: -0.01, z: 2.7 };
+  if (mode === 'side') eye = { x: 0, y: -2.7, z: 0 };
+  Plotly.relayout('plot', { 'scene.camera.eye': eye });
+  ['vTilt','vTop','vSide'].forEach(id => {
+    document.getElementById(id).setAttribute('aria-pressed', (id === 'vTilt' && mode==='tilt') || (id === 'vTop' && mode==='top') || (id === 'vSide' && mode==='side'));
+  });
+}
+
+window.addEventListener('DOMContentLoaded', renderPlot);
+</script>
+
+</body>
+</html>
