@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Inome Café · แพลตฟอร์มวิเคราะห์อัตลักษณ์กลิ่นมัทฉะและโฮจิฉะ (eNose × GC-MS × TPC)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&family=Noto+Serif+Thai:wght@600;700&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/plotly.js-dist-min@2.35.2/plotly.min.js"></script>
+<style>
+:root {
+  --bg: #f8faf9;
+  --surface: #ffffff;
+  --surface-alt: #f1f5f2;
+  --line: #d8e2da;
+  --line-light: #e6ede8;
+  --title: #0f2617;
+  --fg: #1e3324;
+  --muted: #526856;
+  --matcha-dark: #154c25;
+  --matcha: #1e6b28;
+  --matcha-light: #dcfce7;
+  --hojicha: #b45309;
+  --accent-blue: #0284c7;
+  --purple: #7e22ce;
+  --danger: #dc2626;
+  --serif: 'Noto Serif Thai', Georgia, serif;
+  --sans: 'IBM Plex Sans Thai', -apple-system, BlinkMacSystemFont, sans-serif;
+  --en: 'Plus Jakarta Sans', sans-serif;
+  --mono: 'IBM Plex Mono', monospace;
+  --shadow: 0 4px 20px rgba(15, 38, 23, 0.05);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--fg);
+  line-height: 1.5;
+  padding: 16px 20px 48px;
+}
+
+.wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Header Banner */
+.header-card {
+  background: linear-gradient(135deg, #0f2617 0%, #1a4224 100%);
+  color: #ffffff;
+  border-radius: 18px;
+  padding: 22px 28px;
+  box-shadow: 0 8px 30px rgba(15, 38, 23, 0.15);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.header-title h1 {
+  font-family: var(--serif);
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+.header-title p {
+  font-family: var(--en);
+  font-size: 0.82rem;
+  color: #a3c9ac;
+  margin-top: 6px;
+  font-weight: 500;
+}
+.header-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.h-badge {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #e2f0e5;
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  backdrop-filter: blur(4px);
+}
+.h-badge.gold {
+  background: rgba(234, 179, 8, 0.2);
+  border-color: rgba(234, 179, 8, 0.4);
+  color: #fef08a;
+}
+
+/* Card */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px 24px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-bottom: 1px solid var(--line-light);
+  padding-bottom: 10px;
+}
+.card-title {
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--title);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-subtitle {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* Controls Toolbar */
+.toolbar {
+  background: #fafcfb;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tool-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.tool-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--title);
+  margin-right: 4px;
+}
+
+.opt-btn {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  color: var(--fg);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.opt-btn:hover {
+  border-color: var(--matcha);
+  color: var(--matcha);
+}
+.opt-btn.active {
+  background: var(--matcha);
+  color: #ffffff;
+  border-color: var(--matcha);
+  box-shadow: 0 2px 6px rgba(30, 107, 40, 0.2);
+}
+
+.chip-btn {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  padding: 3px 8px;
+  border-radius: 16px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s;
+}
+.chip-btn[aria-pressed="false"] {
+  opacity: 0.35;
+  border-style: dashed;
+}
+
+/* Grid Layouts */
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+.cluster-card {
+  border-radius: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.c-c1 { border-top: 4px solid #0284c7; background: linear-gradient(180deg, #f0f9ff 0%, #ffffff 40%); }
+.c-c2 { border-top: 4px solid #b45309; background: linear-gradient(180deg, #fffbeb 0%, #ffffff 40%); }
+.c-c3 { border-top: 4px solid #16a34a; background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 40%); }
+.c-c4 { border-top: 4px solid #64748b; background: linear-gradient(180deg, #f8fafc 0%, #ffffff 40%); }
+.c-tpc { border-top: 4px solid #7e22ce; background: linear-gradient(180deg, #faf5ff 0%, #ffffff 40%); }
+
+.cluster-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 5px;
+  display: inline-block;
+}
+.bg-c1 { background: #e0f2fe; color: #0369a1; }
+.bg-c2 { background: #fef3c7; color: #92400e; }
+.bg-c3 { background: #dcfce7; color: #166534; }
+.bg-c4 { background: #f1f5f9; color: #334155; }
+.bg-tpc { background: #f3e8ff; color: #6b21a8; }
+
+.cluster-samples {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin: 2px 0;
+}
+.sample-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #ffffff;
+}
+.s-pass { background: #dcfce7; color: #15803d; border-color: #86efac; }
+.s-prem { background: #fef3c7; color: #b45309; border-color: #fde68a; }
+.s-purple { background: #f3e8ff; color: #7e22ce; border-color: #d8b4fe; }
+.s-blue { background: #e0f2fe; color: #0369a1; border-color: #7dd3fc; }
+.s-fail { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
+
+.cluster-flavor {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--title);
+  line-height: 1.35;
+}
+.cluster-details {
+  font-size: 0.74rem;
+  color: #475569;
+  line-height: 1.45;
+}
+.cluster-details b { color: var(--fg); }
+
+/* Table styling */
+.table-wrap {
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+}
+table.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.76rem;
+  text-align: left;
+}
+table.data-table th, table.data-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+}
+table.data-table th {
+  background: var(--surface-alt);
+  color: var(--title);
+  font-weight: 700;
+}
+table.data-table tr:hover td {
+  background: #fafdfa;
+}
+.tag-chem {
+  background: #eef4ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.7rem;
+  font-family: var(--mono);
+  display: inline-block;
+  margin: 1px 0;
+}
+
+/* Callout Summary Box */
+.summary-box {
+  background: linear-gradient(135deg, #f0fdf4 0%, #e6f7ec 100%);
+  border: 1px solid #bbf7d0;
+  border-left: 6px solid #16a34a;
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.summary-box h3 {
+  font-size: 0.96rem;
+  color: #14532d;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.summary-box ul {
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: #1e3a24;
+}
+
+/* OAV stacked bar */
+.oav-legend { display:flex; flex-wrap:wrap; gap:6px 14px; font-size:0.74rem; color:var(--fg); }
+.oav-key { display:inline-flex; align-items:center; gap:5px; }
+.oav-key i { width:11px; height:11px; border-radius:3px; display:inline-block; }
+.oav-key small { color:var(--muted); font-size:0.7rem; }
+.oav-bar { display:flex; height:26px; border-radius:6px; overflow:hidden; background:#eef2ef; min-width:240px; }
+.oav-seg { display:flex; align-items:center; justify-content:center; color:#fff; font-size:0.68rem; font-weight:700; min-width:0; overflow:hidden; }
+.oav-empty { align-items:center; justify-content:center; color:var(--muted); font-size:0.72rem; border:1px dashed var(--line); background:transparent; }
+.oav-note { font-size:0.74rem; color:var(--muted); line-height:1.55; }
+.oav-note b { color:var(--title); }
+table.data-table td { vertical-align:middle; }
+
+/* balanced cluster cards */
+.grid-4 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); align-items: stretch; }
+@supports (grid-template-rows: subgrid) {
+  .grid-4 .cluster-card { display: grid; grid-row: span 4; grid-template-rows: subgrid; row-gap: 8px; }
+}
+.cc-head { display: flex; align-items: flex-start; }
+.cluster-badge { line-height: 1.35; }
+.cluster-details { font-size: 0.78rem; line-height: 1.6; }
+.tpc-band { display: flex; flex-wrap: wrap; gap: 18px 28px; align-items: center; border: 1px solid var(--line); border-top: 4px solid #7e22ce; border-radius: 12px; padding: 14px 18px; background: linear-gradient(180deg, #faf5ff 0%, #ffffff 60%); }
+.tpc-main { display: flex; flex-direction: column; gap: 6px; flex: 0 0 auto; }
+.tpc-num { font-family: var(--serif); font-size: 1.7rem; font-weight: 700; color: #6b21a8; line-height: 1.2; }
+.tpc-num small { font-size: 0.85rem; font-weight: 500; color: #6b21a8; }
+.tpc-text { flex: 1 1 320px; }
+.howto { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 0.76rem; color: var(--muted); line-height: 1.5; padding: 2px 2px 0; }
+.howto b { color: var(--title); }
+.limits { background: #fffbeb; border: 1px solid #fde68a; border-left: 6px solid #b45309; border-radius: 12px; padding: 16px 20px; }
+.limits h3 { font-size: 0.95rem; color: #92400e; margin-bottom: 8px; }
+.limits ul { padding-left: 18px; display: flex; flex-direction: column; gap: 5px; font-size: 0.78rem; color: #4b3a12; }
+@media (max-width: 640px) { body { padding: 12px 12px 40px; } .card { padding: 16px; } .header-card { padding: 18px; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- ==================== HEADER BANNER ==================== -->
+  <header class="header-card">
+    <div class="header-title">
+      <h1>ระบบวิเคราะห์และจำแนกอัตลักษณ์กลิ่นมัทฉะ 10 สายพันธุ์</h1>
+      <p>Multi-Modal Aroma Fingerprinting: 3D eNose MOS Array × HS-SPME-GC-MS Volatiles & TPC Assay · Inome Café</p>
+    </div>
+    <div class="header-badges">
+      <span class="h-badge">✓ แยกได้ครบ 10/10 ตัวอย่าง</span>
+      <span class="h-badge">แผนที่ 3 มิติอธิบายข้อมูลได้ 96.4%</span>
+      <span class="h-badge gold">ใช้รอบวัด 4–7 (สัญญาณนิ่ง)</span>
+      <span class="h-badge">TPC ชา E: ≈ 1.2 mg GAE/mL</span>
+    </div>
+  </header>
+
+  <!-- ==================== PART 1: 3D eNOSE PCA SPACE ==================== -->
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">🧊 3D eNose PCA Space: การกระจายตัวเชิงกลิ่นและตรวจจับ Drift</div>
+        <div class="card-subtitle">สัญญาณจากเซนเซอร์ 10 ช่อง สรุปลงแผนที่ 3 มิติ จุดที่อยู่ใกล้กันมีกลิ่นคล้ายกัน</div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="tool-row" style="border-bottom: 1px solid var(--line-light); padding-bottom: 6px;">
+        <span class="tool-label">รอบตรวจวัด (Cycle):</span>
+        <button class="opt-btn" onclick="set3DCycles([1,2,3,4,5,6,7], this)">Cycle 1–7 (Drift รวม)</button>
+        <button class="opt-btn" onclick="set3DCycles([2,3,4,5,6,7], this)">ตัด Cycle 1</button>
+        <button class="opt-btn" onclick="set3DCycles([3,4,5,6,7], this)">ตัด Cycle 1–2</button>
+        <button class="opt-btn active" onclick="set3DCycles([4,5,6,7], this)">Cycle 4–7 (คงที่)</button>
+        <button class="opt-btn" onclick="set3DCycles([5,6,7], this)">Cycle 5–7 (นิ่งสุด)</button>
+      </div>
+
+      <div class="tool-row" id="pcaChipsRow">
+        <span class="tool-label">ตัวอย่างชา:</span>
+      </div>
+
+      <div class="tool-row" style="border-top: 1px solid var(--line-light); padding-top: 6px; justify-content: space-between;">
+        <div style="display:flex; gap:6px;">
+          <button class="opt-btn" id="btnEllToggle" onclick="toggleEllipsoids()">ซ่อน/แสดง ทรงรีขอบเขต</button>
+          <button class="opt-btn" onclick="toggleAll3DSamples()">เลือกทั้งหมด / ซ่อนทั้งหมด</button>
+        </div>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <span class="tool-label">มุมกล้อง:</span>
+          <button class="opt-btn active" id="btnCamIso" onclick="set3DCamera('iso')">มุมเฉียง</button>
+          <button class="opt-btn" id="btnCamTop" onclick="set3DCamera('top')">มุมบน (ความแรง × ลักษณะ)</button>
+          <button class="opt-btn" id="btnCamSide" onclick="set3DCamera('side')">มุมข้าง (ความแรง × แกนช่วยแยก)</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="pcaPlotContainer" style="width:100%; height:480px; background:#fff;"></div>
+    <div class="howto">
+      <b>วิธีอ่านกราฟ:</b>
+      <span>● 1 จุด = การวัด 1 รอบ ตัวอย่างละ 4 จุด</span>
+      <span>● ทรงรีคือขอบเขตของแต่ละตัวอย่าง ถ้าไม่ซ้อนกันแสดงว่าแยกกันได้</span>
+      <span>● ไปทางขวา = กลิ่นแรงขึ้น ไปทางบน/ล่าง = ลักษณะกลิ่นต่างกัน</span>
+      <span>● กดชื่อตัวอย่างหรือเลือก Cycle เพื่อดูเฉพาะที่สนใจ</span>
+    </div>
+  </section>
+
+  <!-- ==================== PART 3: INTERACTIVE MULTI-MODAL HIERARCHICAL HEATMAP ==================== -->
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">🔥 แผนภาพจำแนกหลายมิติแบบลำดับชั้น (Multi-Omics Hierarchical Clustered Heatmap)</div>
+        <div class="card-subtitle">อิงรูปแบบ Alves-Ferreira et al., 2015 (Dendrogram ด้านบนตรงกึ่งกลางคอลัมน์ 100%)</div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="tool-row" style="justify-content: space-between;">
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+          <span class="tool-label">รูปแบบมุมมอง (View Mode):</span>
+          <button class="opt-btn active" id="btnModeDual" onclick="setHeatmapMode('dual')">📊 Dual-Panel (GC-MS + eNose)</button>
+          <button class="opt-btn" id="btnModeGCMS" onclick="setHeatmapMode('gcms')">🧪 เฉพาะ GC-MS (14 สาร)</button>
+          <button class="opt-btn" id="btnModeEnose" onclick="setHeatmapMode('enose')">📡 เฉพาะ eNose (10 เซนเซอร์)</button>
+          <button class="opt-btn" id="btnModeCorr" onclick="setHeatmapMode('corr')">🔗 Correlation (eNose × GC-MS)</button>
+        </div>
+
+        <div id="metricGroup" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+          <span class="tool-label">หน่วยข้อมูล (Metric):</span>
+          <button class="opt-btn active" id="btnMetZ" onclick="setHeatmapMetric('zscore')">Z-Score (เทียบความเด่นรายสาร)</button>
+          <button class="opt-btn" id="btnMetRaw" onclick="setHeatmapMetric('raw')">ค่าจริง (% Area / mV)</button>
+        </div>
+      </div>
+
+      <div class="tool-row" style="border-top: 1px solid var(--line-light); padding-top: 6px; justify-content: space-between;">
+        <div style="font-size:0.75rem; color:#b45309; font-weight:600;">
+          * ข้อมูลคำนวณจากผงชาแห้ง (Dry Powder ONLY) 100% สอดคล้องกับหัววัด eNose
+        </div>
+      </div>
+    </div>
+
+    <p class="howto" style="margin:0"><b>วิธีอ่าน:</b> <span>สีเข้ม = ค่าสูงกว่าตัวอย่างอื่นในแถวเดียวกัน</span> <span>ตัวอย่างที่อยู่ใกล้กันในแผนผังต้นไม้ด้านบนมีลักษณะคล้ายกัน</span> <span id="corrNote" style="display:none">โหมด Correlation ใช้เพียง 8 ตัวอย่าง จึงอ่านเป็นแนวโน้มเท่านั้น</span></p>
+    <!-- Heatmap Plot Container (Height 680px for perfect spacing of Dendrogram + Panel A + Panel B) -->
+    <div id="heatmapPlotContainer" style="width:100%; height:680px; background:#fff;"></div>
+  </section>
+
+  <!-- ==================== PART 4: SAMPLE SUMMARY TABLE ==================== -->
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">📋 ตารางสรุปกลิ่นรายตัวอย่าง</div>
+        <div class="card-subtitle">รวมผล GC-MS (สารที่ส่งกลิ่นเด่น) และ eNose (ความแรงและลักษณะกลิ่นโดยรวม) ของแต่ละตัวอย่าง</div>
+      </div>
+    </div>
+
+    <div class="oav-legend" id="oavLegend"></div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width:40px;">รหัส</th>
+            <th style="width:150px;">ตัวอย่าง</th>
+            <th style="width:120px;">กลุ่ม</th>
+            <th style="min-width:300px;">สัดส่วนการส่งกลิ่นของแต่ละสาร (OAV)</th>
+            <th style="min-width:260px;">ภาพรวมกลิ่น</th>
+          </tr>
+        </thead>
+        <tbody id="masterTableBody">
+        </tbody>
+      </table>
+    </div>
+    <p class="oav-note"><b>วิธีอ่านแถบสี:</b> OAV คือค่าปริมาณสารเทียบกับระดับที่จมูกเริ่มรับกลิ่น ยิ่งสูงยิ่งมีบทบาทต่อกลิ่น แถบแสดงว่าแต่ละสารมีส่วนต่อกลิ่นของตัวอย่างนั้นกี่ % (รวม 100%) จึงต่างจาก % Area ที่สารปริมาณมากแต่กลิ่นอ่อน (เช่น 2,5-Dimethylpyrazine ใน A) จะไม่เด่น ทั้งนี้เป็นการเปรียบเทียบสัดส่วนภายในตัวอย่างเดียว ไม่ใช่ความแรงรวม และค่า OAV เป็นการประมาณเบื้องต้น DF และ EF ยังไม่มีผล GC-MS</p>
+  </section>
+
+
+  <!-- ==================== PART 2: EXECUTIVE SENSORY CLUSTERS ==================== -->
+  <section class="card">
+    <div class="card-header">
+      <div>
+        <div class="card-title">🍃 สรุปอัตลักษณ์เชิงกลิ่น 4 กลุ่มคลัสเตอร์หลัก (Executive Sensory Profiles)</div>
+        <div class="card-subtitle">จัดกลุ่มตามความคล้ายคลึงทางชีวเคมี (Hierarchical Clustering) & สัญญาณอิเล็กทรอนิกส์โนส</div>
+      </div>
+    </div>
+
+    <div class="grid-4">
+      <div class="cluster-card c-c1">
+        <div class="cc-head"><span class="cluster-badge bg-c1">Cluster 1 · Ceremonial Umami</span></div>
+        <div class="cluster-samples"><span class="sample-pill s-prem">C: Asahi</span><span class="sample-pill s-prem">G: Super Prem</span><span class="sample-pill s-pass">D: Inome</span></div>
+        <div class="cluster-flavor">อูมามิแน่นลึก นุ่มนวล เกรดพิธีการ</div>
+        <div class="cluster-details">
+          • <b>ความแรง:</b> C และ G กลิ่นแรง D ระดับกลาง<br>
+          • <b>กลิ่นหลัก:</b> ดอกไม้หวานลึกจาก β-Ionone (55–79% ของกลิ่น) เสริมมอลต์และสาหร่ายจาก DMS<br>
+          • <b>ความต่าง:</b> Asahi ดอกไม้เด่นสุด, Super Premium มอลต์มากกว่า, Inome สมดุลสุด
+        </div>
+      </div>
+      <div class="cluster-card c-c2">
+        <div class="cc-head"><span class="cluster-badge bg-c2">Cluster 2 · Deep Roasted</span></div>
+        <div class="cluster-samples"><span class="sample-pill s-purple">E: Original (ใบ)</span><span class="sample-pill s-pass">A: Karigane (ก้าน)</span></div>
+        <div class="cluster-flavor">คั่วถั่วเกรียม คาราเมล หอมหวานเนื้อไม้</div>
+        <div class="cluster-details">
+          • <b>ความแรง:</b> E กลิ่นแรง A ระดับกลาง<br>
+          • <b>กลิ่นหลัก:</b> ไพราซีนจากการคั่ว (A 41%, E 33% ของสารระเหย) ซ้อนกับดอกไม้ของ β-Ionone<br>
+          • <b>ความต่าง:</b> E เอนไปทางคั่วเข้ม ส่วน A หวานเนื้อไม้ ไม่ไหม้ขม
+        </div>
+      </div>
+      <div class="cluster-card c-c3">
+        <div class="cc-head"><span class="cluster-badge bg-c3">Cluster 3 · Aromatic Green</span></div>
+        <div class="cluster-samples"><span class="sample-pill s-pass">F: Yuhi</span></div>
+        <div class="cluster-flavor">ใบไม้สดเขียว กลิ่นฟุ้งกระจายตัวแรง</div>
+        <div class="cluster-details">
+          • <b>ความแรง:</b> กลิ่นแรงเป็นอันดับสองของชุด<br>
+          • <b>กลิ่นหลัก:</b> ไม่มี β-Ionone กลิ่นมาจากมอลต์ (ราว 67%) ผสม DMS และ Hexanal กลิ่นหญ้าตัดใหม่ (สูงสุดในชุด 7.17% Area)<br>
+          • <b>ความต่าง:</b> เป็นตัวเดียวที่เขียวสดและฟุ้งเด่นกว่าดอกไม้
+        </div>
+      </div>
+      <div class="cluster-card c-c4">
+        <div class="cc-head"><span class="cluster-badge bg-c4">Cluster 4 · Delicate & Light</span></div>
+        <div class="cluster-samples"><span class="sample-pill s-blue">B: Hikari</span><span class="sample-pill s-blue">H: Ujitanara</span></div>
+        <div class="cluster-flavor">บางเบา สะอาด สบายจมูก ดื่มง่าย</div>
+        <div class="cluster-details">
+          • <b>ความแรง:</b> กลิ่นอ่อน ไม่ฉุน<br>
+          • <b>กลิ่นหลัก:</b> ไม่มี β-Ionone เด่นด้วยมอลต์และสาหร่ายจาก DMS เบาๆ<br>
+          • <b>ความต่าง:</b> B เอนทางมอลต์ H เอนทางสาหร่ายและใบไม้อ่อน
+        </div>
+      </div>
+    </div>
+
+    <div class="tpc-band">
+      <div class="tpc-main">
+        <span class="cluster-badge bg-tpc">TPC · เฉพาะชา E (Original Hojicha)</span>
+        <div class="tpc-num">≈ 1.2 <small>mg GAE/mL</small></div>
+      </div>
+      <div class="cluster-details tpc-text">
+        • <b>ที่มาของค่า:</b> วิธี Folin–Ciocalteu (735 nm) เทียบกรดแกลลิก เฉลี่ยจากการเจือจาง 10X (1.06) และ 100X (1.37 mg GAE/mL) หลังหัก blank<br>
+        • <b>ข้อควรระวัง:</b> เป็นค่าประมาณ เพราะทั้งสองระดับอยู่ขอบช่วงมาตรฐาน (12.5–100 µg/mL) ควรวัดซ้ำที่เจือจางราว 30X<br>
+        • <b>ขอบเขต:</b> มีข้อมูลเฉพาะตัวอย่าง E จึงยังเทียบกับตัวอย่างอื่นไม่ได้
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const SCORES_DATA = [{"sample": "A", "name": "Karigane Hojicha (ก้าน)", "category": "Hojicha (Stem)", "cycle": 1, "PC1": 3.2767, "PC2": 0.8659, "PC3": -1.0012, "phase": "Transient Drift"}, {"sample": "A", "name": "Karigane Hojicha (ก้าน)", "category": "Hojicha (Stem)", "cycle": 2, "PC1": 1.9775, "PC2": 1.2773, "PC3": -0.4672, "phase": "Transient Drift"}, {"sample": "A", "name": "Karigane Hojicha (ก้าน)", "category": "Hojicha (Stem)", "cycle": 3, "PC1": 1.1584, "PC2": 1.3993, "PC3": -0.2382, "phase": "Transient Drift"}, {"sample": "A", "name": "Karigane Hojicha (ก้าน)", "category": "Hojicha (Stem)", "cycle": 4, "PC1": 0.3518, "PC2": 1.5588, "PC3": -0.093, "phase": "Steady State"}, {"sample": "A", "name": "Karigane Hojicha (ก้าน)", "category": "Hojicha (Stem)", "cycle": 5, "PC1": -0.1207, "PC2": 1.5673, "PC3": -0.0163, "phase": "Steady State"}, {"sample": "A", "name": "Karigane Hojicha (ก้าน)", "category": "Hojicha (Stem)", "cycle": 6, "PC1": -0.5848, "PC2": 1.6425, "PC3": 0.0672, "phase": "Steady State"}, {"sample": "A", "name": "Karigane Hojicha (ก้าน)", "category": "Hojicha (Stem)", "cycle": 7, "PC1": -0.9509, "PC2": 1.703, "PC3": 0.1216, "phase": "Steady State"}, {"sample": "B", "name": "Hikari", "category": "Matcha", "cycle": 1, "PC1": 1.7176, "PC2": -1.7799, "PC3": -0.7723, "phase": "Transient Drift"}, {"sample": "B", "name": "Hikari", "category": "Matcha", "cycle": 2, "PC1": 0.2305, "PC2": -1.4354, "PC3": -1.0871, "phase": "Transient Drift"}, {"sample": "B", "name": "Hikari", "category": "Matcha", "cycle": 3, "PC1": -1.722, "PC2": -0.9141, "PC3": -1.1037, "phase": "Transient Drift"}, {"sample": "B", "name": "Hikari", "category": "Matcha", "cycle": 4, "PC1": -2.662, "PC2": -0.9633, "PC3": -1.3627, "phase": "Steady State"}, {"sample": "B", "name": "Hikari", "category": "Matcha", "cycle": 5, "PC1": -3.7493, "PC2": -0.7303, "PC3": -1.4289, "phase": "Steady State"}, {"sample": "B", "name": "Hikari", "category": "Matcha", "cycle": 6, "PC1": -4.1036, "PC2": -0.7861, "PC3": -1.4883, "phase": "Steady State"}, {"sample": "B", "name": "Hikari", "category": "Matcha", "cycle": 7, "PC1": -4.6925, "PC2": -0.8016, "PC3": -1.5648, "phase": "Steady State"}, {"sample": "C", "name": "Asahi", "category": "Matcha Single Cultivar", "cycle": 1, "PC1": 5.2755, "PC2": -1.9413, "PC3": -0.4036, "phase": "Transient Drift"}, {"sample": "C", "name": "Asahi", "category": "Matcha Single Cultivar", "cycle": 2, "PC1": 4.3169, "PC2": -1.3648, "PC3": -0.1815, "phase": "Transient Drift"}, {"sample": "C", "name": "Asahi", "category": "Matcha Single Cultivar", "cycle": 3, "PC1": 3.0789, "PC2": -0.9086, "PC3": -0.103, "phase": "Transient Drift"}, {"sample": "C", "name": "Asahi", "category": "Matcha Single Cultivar", "cycle": 4, "PC1": 2.654, "PC2": -0.8487, "PC3": -0.0507, "phase": "Steady State"}, {"sample": "C", "name": "Asahi", "category": "Matcha Single Cultivar", "cycle": 5, "PC1": 1.7934, "PC2": -0.517, "PC3": -0.0642, "phase": "Steady State"}, {"sample": "C", "name": "Asahi", "category": "Matcha Single Cultivar", "cycle": 6, "PC1": 1.1849, "PC2": -0.3193, "PC3": -0.0495, "phase": "Steady State"}, {"sample": "C", "name": "Asahi", "category": "Matcha Single Cultivar", "cycle": 7, "PC1": 0.7205, "PC2": -0.1187, "PC3": -0.0385, "phase": "Steady State"}, {"sample": "D", "name": "Inome", "category": "Matcha House Blend", "cycle": 1, "PC1": 2.6201, "PC2": -0.8587, "PC3": -0.1884, "phase": "Transient Drift"}, {"sample": "D", "name": "Inome", "category": "Matcha House Blend", "cycle": 2, "PC1": 1.6636, "PC2": -0.3908, "PC3": -0.0234, "phase": "Transient Drift"}, {"sample": "D", "name": "Inome", "category": "Matcha House Blend", "cycle": 3, "PC1": 0.7977, "PC2": -0.1232, "PC3": 0.0993, "phase": "Transient Drift"}, {"sample": "D", "name": "Inome", "category": "Matcha House Blend", "cycle": 4, "PC1": 0.1861, "PC2": 0.1154, "PC3": 0.1149, "phase": "Steady State"}, {"sample": "D", "name": "Inome", "category": "Matcha House Blend", "cycle": 5, "PC1": -0.3515, "PC2": 0.2756, "PC3": 0.144, "phase": "Steady State"}, {"sample": "D", "name": "Inome", "category": "Matcha House Blend", "cycle": 6, "PC1": -0.7628, "PC2": 0.4123, "PC3": 0.1703, "phase": "Steady State"}, {"sample": "D", "name": "Inome", "category": "Matcha House Blend", "cycle": 7, "PC1": -1.1184, "PC2": 0.4945, "PC3": 0.1807, "phase": "Steady State"}, {"sample": "DF", "name": "Inome (Suspect)", "category": "Suspect / Off-spec", "cycle": 1, "PC1": 0.2423, "PC2": 0.0868, "PC3": -0.1261, "phase": "Transient Drift"}, {"sample": "DF", "name": "Inome (Suspect)", "category": "Suspect / Off-spec", "cycle": 2, "PC1": -2.1161, "PC2": -0.8259, "PC3": 1.1412, "phase": "Transient Drift"}, {"sample": "DF", "name": "Inome (Suspect)", "category": "Suspect / Off-spec", "cycle": 3, "PC1": -3.2294, "PC2": -0.6325, "PC3": 1.0258, "phase": "Transient Drift"}, {"sample": "DF", "name": "Inome (Suspect)", "category": "Suspect / Off-spec", "cycle": 4, "PC1": -3.8343, "PC2": -0.93, "PC3": 1.0878, "phase": "Steady State"}, {"sample": "DF", "name": "Inome (Suspect)", "category": "Suspect / Off-spec", "cycle": 5, "PC1": -4.4424, "PC2": -0.8045, "PC3": 1.047, "phase": "Steady State"}, {"sample": "DF", "name": "Inome (Suspect)", "category": "Suspect / Off-spec", "cycle": 6, "PC1": -4.654, "PC2": -1.0311, "PC3": 1.0176, "phase": "Steady State"}, {"sample": "DF", "name": "Inome (Suspect)", "category": "Suspect / Off-spec", "cycle": 7, "PC1": -5.0498, "PC2": -1.0944, "PC3": 1.1461, "phase": "Steady State"}, {"sample": "E", "name": "Original Hojicha", "category": "Hojicha (Leaf)", "cycle": 1, "PC1": 5.6582, "PC2": -1.954, "PC3": -0.3289, "phase": "Transient Drift"}, {"sample": "E", "name": "Original Hojicha", "category": "Hojicha (Leaf)", "cycle": 2, "PC1": 4.4323, "PC2": -1.6203, "PC3": -0.1115, "phase": "Transient Drift"}, {"sample": "E", "name": "Original Hojicha", "category": "Hojicha (Leaf)", "cycle": 3, "PC1": 3.4895, "PC2": -1.4982, "PC3": -0.1307, "phase": "Transient Drift"}, {"sample": "E", "name": "Original Hojicha", "category": "Hojicha (Leaf)", "cycle": 4, "PC1": 2.4914, "PC2": -1.9532, "PC3": 0.3466, "phase": "Steady State"}, {"sample": "E", "name": "Original Hojicha", "category": "Hojicha (Leaf)", "cycle": 5, "PC1": 1.9513, "PC2": -1.9772, "PC3": 0.3035, "phase": "Steady State"}, {"sample": "E", "name": "Original Hojicha", "category": "Hojicha (Leaf)", "cycle": 6, "PC1": 2.0033, "PC2": -2.1912, "PC3": 0.3115, "phase": "Steady State"}, {"sample": "E", "name": "Original Hojicha", "category": "Hojicha (Leaf)", "cycle": 7, "PC1": 1.8016, "PC2": -2.305, "PC3": 0.3209, "phase": "Steady State"}, {"sample": "EF", "name": "Original Hojicha (Suspect)", "category": "Suspect / Off-spec", "cycle": 1, "PC1": 5.3308, "PC2": 0.1081, "PC3": -1.2558, "phase": "Transient Drift"}, {"sample": "EF", "name": "Original Hojicha (Suspect)", "category": "Suspect / Off-spec", "cycle": 2, "PC1": 5.414, "PC2": 0.3948, "PC3": -0.8308, "phase": "Transient Drift"}, {"sample": "EF", "name": "Original Hojicha (Suspect)", "category": "Suspect / Off-spec", "cycle": 3, "PC1": 4.9935, "PC2": 0.5284, "PC3": -0.6191, "phase": "Transient Drift"}, {"sample": "EF", "name": "Original Hojicha (Suspect)", "category": "Suspect / Off-spec", "cycle": 4, "PC1": 4.4082, "PC2": 0.6835, "PC3": -0.4774, "phase": "Steady State"}, {"sample": "EF", "name": "Original Hojicha (Suspect)", "category": "Suspect / Off-spec", "cycle": 5, "PC1": 3.9049, "PC2": 0.7261, "PC3": -0.3865, "phase": "Steady State"}, {"sample": "EF", "name": "Original Hojicha (Suspect)", "category": "Suspect / Off-spec", "cycle": 6, "PC1": 3.303, "PC2": 0.799, "PC3": -0.2981, "phase": "Steady State"}, {"sample": "EF", "name": "Original Hojicha (Suspect)", "category": "Suspect / Off-spec", "cycle": 7, "PC1": 3.0244, "PC2": 0.7903, "PC3": -0.2521, "phase": "Steady State"}, {"sample": "F", "name": "Yuhi", "category": "Matcha Cultivar", "cycle": 1, "PC1": 1.9311, "PC2": -0.216, "PC3": -0.0012, "phase": "Transient Drift"}, {"sample": "F", "name": "Yuhi", "category": "Matcha Cultivar", "cycle": 2, "PC1": 2.5609, "PC2": -0.1403, "PC3": 0.0796, "phase": "Transient Drift"}, {"sample": "F", "name": "Yuhi", "category": "Matcha Cultivar", "cycle": 3, "PC1": 2.5894, "PC2": -0.0126, "PC3": 0.143, "phase": "Transient Drift"}, {"sample": "F", "name": "Yuhi", "category": "Matcha Cultivar", "cycle": 4, "PC1": 2.261, "PC2": 0.1857, "PC3": 0.1877, "phase": "Steady State"}, {"sample": "F", "name": "Yuhi", "category": "Matcha Cultivar", "cycle": 5, "PC1": 2.7678, "PC2": 0.4722, "PC3": 0.4834, "phase": "Steady State"}, {"sample": "F", "name": "Yuhi", "category": "Matcha Cultivar", "cycle": 6, "PC1": 2.8499, "PC2": 0.7952, "PC3": 0.6473, "phase": "Steady State"}, {"sample": "F", "name": "Yuhi", "category": "Matcha Cultivar", "cycle": 7, "PC1": 2.8138, "PC2": 0.7852, "PC3": 0.4787, "phase": "Steady State"}, {"sample": "G", "name": "Super Premium", "category": "Matcha Ceremonial Grade", "cycle": 1, "PC1": 5.6355, "PC2": -1.9259, "PC3": -0.5669, "phase": "Transient Drift"}, {"sample": "G", "name": "Super Premium", "category": "Matcha Ceremonial Grade", "cycle": 2, "PC1": 5.0625, "PC2": -1.2718, "PC3": -0.3101, "phase": "Transient Drift"}, {"sample": "G", "name": "Super Premium", "category": "Matcha Ceremonial Grade", "cycle": 3, "PC1": 4.2102, "PC2": -1.0351, "PC3": -0.3561, "phase": "Transient Drift"}, {"sample": "G", "name": "Super Premium", "category": "Matcha Ceremonial Grade", "cycle": 4, "PC1": 3.2552, "PC2": -0.7626, "PC3": -0.3427, "phase": "Steady State"}, {"sample": "G", "name": "Super Premium", "category": "Matcha Ceremonial Grade", "cycle": 5, "PC1": 2.4322, "PC2": -0.5014, "PC3": -0.3193, "phase": "Steady State"}, {"sample": "G", "name": "Super Premium", "category": "Matcha Ceremonial Grade", "cycle": 6, "PC1": 1.6193, "PC2": -0.3521, "PC3": -0.2855, "phase": "Steady State"}, {"sample": "G", "name": "Super Premium", "category": "Matcha Ceremonial Grade", "cycle": 7, "PC1": 0.8594, "PC2": -0.1832, "PC3": -0.2597, "phase": "Steady State"}, {"sample": "H", "name": "Ujitanara", "category": "Matcha", "cycle": 1, "PC1": -1.891, "PC2": 1.2864, "PC3": 0.0029, "phase": "Transient Drift"}, {"sample": "H", "name": "Ujitanara", "category": "Matcha", "cycle": 2, "PC1": -2.0856, "PC2": 1.4519, "PC3": 0.1061, "phase": "Transient Drift"}, {"sample": "H", "name": "Ujitanara", "category": "Matcha", "cycle": 3, "PC1": -2.2877, "PC2": 1.4456, "PC3": 0.0615, "phase": "Transient Drift"}, {"sample": "H", "name": "Ujitanara", "category": "Matcha", "cycle": 4, "PC1": -2.5467, "PC2": 1.5411, "PC3": 0.1339, "phase": "Steady State"}, {"sample": "H", "name": "Ujitanara", "category": "Matcha", "cycle": 5, "PC1": -2.7569, "PC2": 1.545, "PC3": 0.1456, "phase": "Steady State"}, {"sample": "H", "name": "Ujitanara", "category": "Matcha", "cycle": 6, "PC1": -2.9975, "PC2": 1.5335, "PC3": 0.1601, "phase": "Steady State"}, {"sample": "H", "name": "Ujitanara", "category": "Matcha", "cycle": 7, "PC1": -3.259, "PC2": 1.5448, "PC3": 0.1612, "phase": "Steady State"}];
+const SAMPLE_META = {"A": {"name": "Karigane Hojicha (ก้าน)", "char": "Sweet Woody & Stems", "color": "#E11D48", "symbol_3d": "circle", "cluster": "Cluster 2 (Woody-Roasted)", "gcms_top": "2,5-DMP (15.9%), 2-Ethyl-5-MP, β-Ionone", "tpc_info": "-", "mechanics": "ก้านชาคั่วไฟ มี L-Theanine/เอมีน และ β-Ionone สูง จึงไม่ขมไหม้", "enose_driver": "G11 (69.7) & G8 (18.8) [+PC2 = +1.62]"}, "B": {"name": "Hikari", "char": "Delicate & Light", "color": "#EA580C", "symbol_3d": "square", "cluster": "Cluster 4 (Delicate / Low Intensity)", "gcms_top": "Hexanal (5.44%), Dimethyl sulfide (3.41%), 2-MB", "tpc_info": "-", "mechanics": "สารระเหยรวมต่ำ ไอระเหยบางเบา สะอาด กลิ่นสาหร่าย DMS จางๆ", "enose_driver": "สัญญาณต่ำทุกช่อง [-PC1 = -3.80]"}, "C": {"name": "Asahi", "char": "Rich Umami & Deep Green", "color": "#16A34A", "symbol_3d": "diamond", "cluster": "Cluster 1 (Ceremonial Rich Umami)", "gcms_top": "Hexanal (5.49%), Nonanal, β-Ionone (0.92%)", "tpc_info": "-", "mechanics": "มัทฉะเดี่ยวเกรดประกวด β-Ionone สูงสุดอันดับ 1 ร่วมกับ DMS และ Nonanal", "enose_driver": "G5 (155.7) & G10 (125.7) [+PC1 = +1.59]"}, "D": {"name": "Inome", "char": "Well-Balanced Blend", "color": "#0284C7", "symbol_3d": "cross", "cluster": "Cluster 1 (Balanced House Blend)", "gcms_top": "DMS (7.17%), 2-MB (5.01%), β-Ionone (0.92%)", "tpc_info": "-", "mechanics": "เฮาส์เบลนด์สมดุล มี DMS สูงสุด ผสานแอลดีไฮด์มอลต์และ β-Ionone", "enose_driver": "Baseline สมดุลทุกตัว [PC1 = -0.51, PC2 = +0.32]"}, "DF": {"name": "Inome (Suspect)", "char": "ยังไม่มีผล GC-MS", "color": "#64748B", "symbol_3d": "x", "cluster": "ยังไม่มีผล GC-MS", "gcms_top": "ยังไม่มีผล GC-MS", "tpc_info": "-", "mechanics": "ยังไม่มีผล GC-MS", "enose_driver": "G5 (-87.7) & G11 (-90.9) ติดลบหลุดกลุ่ม"}, "E": {"name": "Original Hojicha", "char": "Deep Roasty & Pyrazines", "color": "#9333EA", "symbol_3d": "square-open", "cluster": "Cluster 2 (Deep Roasted Leaf)", "gcms_top": "2,5-DMP (10.3%), 2-Ethyl-5-MP (6.2%), 3-Ethyl-2,5-DMP", "tpc_info": "≈ 1.2 mg GAE/mL", "mechanics": "Maillard reaction สมบูรณ์ เกิดไพราซีนคั่วเข้มข้น + สาร Maillard reductones", "enose_driver": "G13 (172.3) & G14 (108.0) [-PC2 = -2.11]"}, "EF": {"name": "Original Hojicha (Suspect)", "char": "ยังไม่มีผล GC-MS", "color": "#DC2626", "symbol_3d": "diamond-open", "cluster": "ยังไม่มีผล GC-MS", "gcms_top": "ยังไม่มีผล GC-MS", "tpc_info": "-", "mechanics": "ยังไม่มีผล GC-MS", "enose_driver": "ยังไม่มีผล GC-MS"}, "F": {"name": "Yuhi", "char": "Aromatic & Floral-Green", "color": "#0D9488", "symbol_3d": "circle-open", "cluster": "Cluster 3 (Aromatic High-Intensity)", "gcms_top": "Hexanal (7.17%), 2-Methylbutanal (2.79%)", "tpc_info": "-", "mechanics": "กลิ่นฟุ้งกระจายตัวสูงจาก Hexanal (ใบไม้สด) และแอลดีไฮด์สายสั้น", "enose_driver": "G5 (222.1) & G6 (150.3) [+PC1 = +2.67]"}, "G": {"name": "Super Premium", "char": "Ceremonial Grade", "color": "#CA8A04", "symbol_3d": "circle", "cluster": "Cluster 1 (Ceremonial Rich Umami)", "gcms_top": "DMS (5.43%), Hexanal (5.30%), 2-MB (4.91%)", "tpc_info": "-", "mechanics": "คู่แฝด Asahi กลิ่นพิธีการแท้ นุ่มนวล อูมามิหนาแน่น ซับซ้อน", "enose_driver": "G5 (175.6) & G7 (154.2) [+PC1 = +2.04]"}, "H": {"name": "Ujitanara", "char": "Vegetal & Sweet Grass", "color": "#65A30D", "symbol_3d": "diamond", "cluster": "Cluster 4 (Fresh Vegetal Light)", "gcms_top": "Hexanal (4.04%), DMS (1.62%), 2-Pentylfuran", "tpc_info": "-", "mechanics": "กลิ่นใบไม้อ่อน เขียวสดใส สะอาด บริสุทธิ์แบบธรรมชาติ", "enose_driver": "G11 (20.6) เด่นฝั่งสดเขียว [-PC1, +PC2 = +1.54]"}};
+const SAMPLES = ["A","B","C","D","DF","E","EF","F","G","H"];
+const SVG_ICONS = {"A": "<svg width=\"13\" height=\"13\" viewBox=\"0 0 14 14\" style=\"vertical-align:middle;margin-right:4px;\"><circle cx=\"7\" cy=\"7\" r=\"5.5\" fill=\"#E11D48\" stroke=\"#ffffff\" stroke-width=\"1\"/></svg>", "B": "<svg width=\"13\" height=\"13\" viewBox=\"0 0 14 14\" style=\"vertical-align:middle;margin-right:4px;\"><rect x=\"2\" y=\"2\" width=\"10\" height=\"10\" fill=\"#EA580C\" stroke=\"#ffffff\" stroke-width=\"1\"/></svg>", "C": "<svg width=\"13\" height=\"13\" viewBox=\"0 0 14 14\" style=\"vertical-align:middle;margin-right:4px;\"><polygon points=\"7,1 13,7 7,13 1,7\" fill=\"#16A34A\" stroke=\"#ffffff\" stroke-width=\"1\"/></svg>", "D": "<svg width=\"13\" height=\"13\" viewBox=\"0 0 14 14\" style=\"vertical-align:middle;margin-right:4px;\"><path d=\"M5,1 h4 v4 h4 v4 h-4 v4 h-4 v-4 h-4 v-4 h4 z\" fill=\"#0284C7\"/></svg>", "DF": "<svg width=\"13\" height=\"13\" viewBox=\"0 0 14 14\" style=\"vertical-align:middle;margin-right:4px;\"><line x1=\"2\" y1=\"2\" x2=\"12\" y2=\"12\" stroke=\"#64748B\" stroke-width=\"3\"/><line x1=\"12\" y1=\"2\" x2=\"2\" y2=\"12\" stroke=\"#64748B\" stroke-width=\"3\"/></svg>", "E": "<svg width=\"13\" height=\"13\" viewBox=\"0 0 14 14\" style=\"vertical-align:middle;margin-right:4px;\"><rect x=\"2.5\" y=\"2.5\" width=\"9\" height=\"9\" fill=\"none\" stroke=\"#9333EA\" stroke-width=\"2.5\"/></svg>", "EF": "<svg width=\"13\" height=\"13\" viewBox=\"0 0 14 14\" style=\"vertical-align:middle;margin-right:4px;\"><polygon points=\"7,2 12,7 7,12 2,7\" fill=\"none\" stroke=\"#DC2626\" stroke-width=\"2.5\"/></svg>", "F": "<svg width=\"13\" height=\"13\" viewBox=\"0 0 14 14\" style=\"vertical-align:middle;margin-right:4px;\"><circle cx=\"7\" cy=\"7\" r=\"5\" fill=\"none\" stroke=\"#0D9488\" stroke-width=\"2.5\"/></svg>", "G": "<svg width=\"13\" height=\"13\" viewBox=\"0 0 14 14\" style=\"vertical-align:middle;margin-right:4px;\"><circle cx=\"7\" cy=\"7\" r=\"5.5\" fill=\"#CA8A04\" stroke=\"#854d0e\" stroke-width=\"1.8\"/></svg>", "H": "<svg width=\"13\" height=\"13\" viewBox=\"0 0 14 14\" style=\"vertical-align:middle;margin-right:4px;\"><polygon points=\"7,1 13,7 7,13 1,7\" fill=\"#65A30D\" stroke=\"#365314\" stroke-width=\"1.5\"/></svg>"};
+
+const HM_SAMPLES = ["A (Karigane)", "E (Original)", "B (Hikari)", "H (Ujitanara)", "F (Yuhi)", "C (Asahi)", "D (Inome)", "G (Super Prem)"];
+const HM_SAMPLE_INDICES = [0, 1, 2, 3, 4, 5, 6, 7];
+const HM_GCMS_NAMES = ["β-Ionone", "α-Ionone", "Dimethyl sulfide (DMS)", "2-Methylbutanal", "3-Methylbutanal", "Hexanal", "(Z)-3-Hexen-1-ol", "Nonanal", "2-Pentylfuran", "2,5-Dimethylpyrazine", "3-Ethyl-2,5-dimethylpyrazine", "2-Ethyl-5-methylpyrazine", "2-Methylpyrazine", "2-Ethyl-3,5-dimethylpyrazine"];
+const HM_ENOSE_NAMES = ["G2 (MQ-135)", "G3 (MQ-8)", "G5 (MQ-2)", "G6 (MQ-5)", "G7 (MQ-4)", "G8 (MQ-137)", "G10 (MQ-7)", "G11 (TGS-813)", "G13 (TGS-2600)", "G14 (TGS-2610)"];
+
+const HM_GCMS_AREA_RAW = [[0.43, 0.38, 0.0, 0.0, 0.0, 0.92, 0.92, 0.64], [0.25, 0.12, 0.49, 0.2, 0.65, 0.73, 0.82, 0.65], [1.93, 0.0, 3.41, 1.62, 1.35, 2.41, 7.17, 5.43], [1.0, 0.91, 2.18, 0.0, 2.79, 1.72, 5.01, 4.91], [0.39, 0.0, 1.9, 0.66, 1.86, 1.49, 4.69, 4.53], [0.96, 0.67, 5.44, 4.04, 7.17, 5.49, 4.34, 5.3], [1.07, 0.0, 0.0, 1.1, 0.0, 2.29, 1.22, 0.78], [0.0, 0.0, 1.96, 0.0, 1.22, 2.89, 1.76, 2.09], [2.05, 4.49, 0.0, 0.0, 0.0, 1.83, 1.24, 1.15], [15.9, 10.31, 1.44, 0.22, 1.11, 2.04, 1.52, 1.78], [7.17, 4.86, 0.51, 0.0, 0.0, 0.68, 0.36, 0.62], [8.6, 6.19, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [2.36, 3.24, 0.23, 0.0, 0.28, 0.34, 0.34, 0.26], [0.88, 0.0, 0.0, 0.0, 0.41, 0.0, 0.0, 0.0]];
+const HM_GCMS_POTENCY = [["⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "ไม่พบ", "ไม่พบ", "ไม่พบ", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)"], ["⭐⭐ ระดับส่งกลิ่นรองเด่น (Distinct)", "⭐⭐ ระดับส่งกลิ่นรองเด่น (Distinct)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐ ระดับส่งกลิ่นรองเด่น (Distinct)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)"], ["⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "ไม่พบ", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)"], ["⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "ไม่พบ", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)"], ["⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "ไม่พบ", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)"], ["⭐⭐ ระดับส่งกลิ่นรองเด่น (Distinct)", "⭐⭐ ระดับส่งกลิ่นรองเด่น (Distinct)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐ ระดับส่งกลิ่นรองเด่น (Distinct)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐ ระดับส่งกลิ่นรองเด่น (Distinct)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)"], ["⭐ เสริมมิติกลิ่น (Detectable)", "ไม่พบ", "ไม่พบ", "⭐ เสริมมิติกลิ่น (Detectable)", "ไม่พบ", "⭐ เสริมมิติกลิ่น (Detectable)", "⭐ เสริมมิติกลิ่น (Detectable)", "⭐ เสริมมิติกลิ่น (Detectable)"], ["ไม่พบ", "ไม่พบ", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "ไม่พบ", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)"], ["⭐⭐ ระดับส่งกลิ่นรองเด่น (Distinct)", "⭐⭐ ระดับส่งกลิ่นรองเด่น (Distinct)", "ไม่พบ", "ไม่พบ", "ไม่พบ", "⭐⭐ ระดับส่งกลิ่นรองเด่น (Distinct)", "⭐⭐ ระดับส่งกลิ่นรองเด่น (Distinct)", "⭐⭐ ระดับส่งกลิ่นรองเด่น (Distinct)"], ["ใต้เกณฑ์รับกลิ่น (Trace)", "ใต้เกณฑ์รับกลิ่น (Trace)", "ใต้เกณฑ์รับกลิ่น (Trace)", "ใต้เกณฑ์รับกลิ่น (Trace)", "ใต้เกณฑ์รับกลิ่น (Trace)", "ใต้เกณฑ์รับกลิ่น (Trace)", "ใต้เกณฑ์รับกลิ่น (Trace)", "ใต้เกณฑ์รับกลิ่น (Trace)"], ["⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "ไม่พบ", "ไม่พบ", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "⭐⭐ ระดับส่งกลิ่นรองเด่น (Distinct)", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)"], ["⭐ เสริมมิติกลิ่น (Detectable)", "⭐ เสริมมิติกลิ่น (Detectable)", "ไม่พบ", "ไม่พบ", "ไม่พบ", "ไม่พบ", "ไม่พบ", "ไม่พบ"], ["⭐ เสริมมิติกลิ่น (Detectable)", "⭐ เสริมมิติกลิ่น (Detectable)", "ใต้เกณฑ์รับกลิ่น (Trace)", "ไม่พบ", "ใต้เกณฑ์รับกลิ่น (Trace)", "ใต้เกณฑ์รับกลิ่น (Trace)", "ใต้เกณฑ์รับกลิ่น (Trace)", "ใต้เกณฑ์รับกลิ่น (Trace)"], ["⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "ไม่พบ", "ไม่พบ", "ไม่พบ", "⭐⭐⭐ ระดับส่งกลิ่นหลัก (Dominant)", "ไม่พบ", "ไม่พบ", "ไม่พบ"]];
+const HM_GCMS_AREA_Z = [[0.051, -0.085, -1.12, -1.12, -1.12, 1.385, 1.385, 0.623], [-0.959, -1.481, 0.005, -1.159, 0.647, 0.969, 1.33, 0.647], [-0.449, -1.328, 0.226, -0.59, -0.713, -0.23, 1.939, 1.146], [-0.765, -0.817, -0.079, -1.346, 0.276, -0.346, 1.567, 1.509], [-0.929, -1.162, -0.024, -0.767, -0.048, -0.27, 1.648, 1.552], [-1.511, -1.648, 0.594, -0.064, 1.407, 0.617, 0.077, 0.528], [0.351, -1.079, -1.079, 0.391, -1.079, 1.981, 0.551, -0.037], [-1.179, -1.179, 0.685, -1.179, -0.019, 1.569, 0.494, 0.808], [0.497, 2.217, -0.948, -0.948, -0.948, 0.342, -0.074, -0.137], [2.19, 1.135, -0.538, -0.768, -0.6, -0.424, -0.522, -0.473], [2.135, 1.221, -0.501, -0.703, -0.703, -0.433, -0.56, -0.457], [2.072, 1.332, -0.567, -0.567, -0.567, -0.567, -0.567, -0.567], [1.304, 2.08, -0.574, -0.777, -0.53, -0.477, -0.477, -0.548], [2.372, -0.532, -0.532, -0.532, 0.821, -0.532, -0.532, -0.532]];
+
+const HM_ENOSE_RAW = [[33.4, 67.7, -32.6, 10.0, 70.0, 55.8, 37.5, 57.3], [48.3, 90.9, -38.4, 11.1, 111.7, 88.3, 54.9, 78.9], [63.3, 219.1, 46.4, 38.1, 222.1, 155.7, 83.8, 175.6], [57.3, 102.7, -43.1, 12.3, 150.3, 97.9, 62.2, 108.8], [68.4, 97.2, -34.3, 22.9, 157.2, 92.8, 64.2, 154.2], [18.8, 10.1, -6.9, 6.8, 20.3, 11.5, 7.6, 12.1], [90.8, 124.4, 38.2, 9.5, 113.1, 125.7, 66.6, 105.3], [69.7, -30.0, -13.1, 20.6, 48.4, 43.1, 27.4, 48.4], [56.0, 172.3, 77.5, 13.8, 93.3, 130.6, 77.8, 135.3], [32.6, 108.0, 53.8, 15.9, 84.9, 81.7, 57.2, 101.6]];
+const HM_ENOSE_Z = [[-0.122, 0.937, -2.162, -0.847, 1.007, 0.569, 0.002, 0.616], [-0.162, 0.766, -2.049, -0.971, 1.219, 0.71, -0.018, 0.505], [-0.869, 1.306, -1.105, -1.22, 1.349, 0.422, -0.583, 0.7], [-0.196, 0.597, -1.954, -0.985, 1.43, 0.514, -0.11, 0.705], [-0.157, 0.324, -1.875, -0.919, 1.328, 0.251, -0.229, 1.277], [1.118, 0.006, -2.158, -0.414, 1.311, 0.186, -0.313, 0.264], [0.166, 1.01, -1.155, -1.878, 0.727, 1.042, -0.443, 0.531], [1.365, -1.808, -1.271, -0.197, 0.686, 0.517, 0.02, 0.688], [-0.823, 1.657, -0.364, -1.723, -0.027, 0.767, -0.358, 0.87], [-1.124, 1.342, -0.43, -1.671, 0.586, 0.483, -0.318, 1.132]];
+
+const HM_CORR_MATRIX = [[0.416, 0.163, -0.165, 0.206, 0.06, -0.062, 0.121, -0.009, 0.503, 0.184, 0.166, 0.182, 0.318, 0.126], [0.402, 0.239, -0.165, 0.224, 0.07, 0.031, 0.126, 0.065, 0.438, 0.138, 0.114, 0.129, 0.258, 0.147], [0.144, 0.158, -0.283, 0.212, 0.025, 0.133, -0.246, 0.135, 0.435, 0.012, 0.003, 0.023, 0.268, -0.087], [0.328, 0.271, -0.139, 0.281, 0.124, 0.113, 0.05, 0.081, 0.343, 0.088, 0.062, 0.077, 0.192, 0.171], [0.304, 0.294, -0.028, 0.386, 0.249, 0.166, 0.019, 0.111, 0.245, 0.044, 0.018, 0.025, 0.106, 0.168], [0.182, 0.021, -0.254, 0.009, -0.112, -0.11, 0.166, -0.249, 0.227, 0.389, 0.353, 0.371, 0.282, 0.628], [0.458, 0.219, -0.197, 0.202, -0.01, -0.071, 0.062, 0.233, 0.603, 0.334, 0.316, 0.295, 0.435, 0.183], [0.284, 0.376, 0.23, 0.235, 0.243, 0.228, 0.499, 0.156, -0.313, 0.1, 0.056, 0.021, -0.262, 0.612], [0.412, 0.143, -0.094, 0.263, 0.09, -0.09, -0.13, 0.316, 0.68, 0.133, 0.143, 0.122, 0.408, -0.303], [0.307, 0.273, -0.03, 0.406, 0.231, 0.129, -0.24, 0.365, 0.486, -0.044, -0.042, -0.052, 0.233, -0.309]];
+
+// Dendrogram Tree Trace (drawn on numeric x: 0 to 7 to match category ticks perfectly)
+const DENDRO_TRACE = {
+  x: [0.0, 0.0, 1.0, 1.0, null, 2.0, 2.0, 3.0, 3.0, null, 6.0, 6.0, 7.0, 7.0, null, 5.0, 5.0, 6.5, 6.5, null, 4.0, 4.0, 5.75, 5.75, null, 2.5, 2.5, 4.875, 4.875, null, 0.5, 0.5, 3.6875, 3.6875, null],
+  y: [0.0, 7.036, 7.036, 0.0, null, 0.0, 4.821, 4.821, 0.0, null, 0.0, 3.595, 3.595, 0.0, null, 0.0, 4.406, 4.406, 3.595, null, 0.0, 5.415, 5.415, 4.406, null, 4.821, 7.599, 7.599, 5.415, null, 7.036, 8.417, 8.417, 7.599, null],
+  mode: 'lines',
+  line: { color: '#0f2617', width: 2 },
+  hoverinfo: 'none',
+  showlegend: false,
+  xaxis: 'x',
+  yaxis: 'y3'
+};
+
+let hmMode = 'dual';     // 'dual', 'gcms', 'enose', 'corr'
+let hmMetric = 'zscore'; // 'zscore', 'raw'
+
+const PALETTES = {
+  sage: [[0.0, '#ffffff'], [0.2, '#eaf2eb'], [0.4, '#c8decb'], [0.6, '#9ec2a3'], [0.8, '#6f9e76'], [1.0, '#3b6b40']]
+};
+
+function renderHeatmapPlot() {
+  const container = document.getElementById('heatmapPlotContainer');
+  const metricGrp = document.getElementById('metricGroup');
+  const colorscale = PALETTES.sage;
+
+  if (hmMode === 'corr') {
+    metricGrp.style.display = 'none';
+  } else {
+    metricGrp.style.display = 'flex';
+  }
+  document.getElementById('corrNote').style.display = hmMode === 'corr' ? 'inline' : 'none';
+
+  if (hmMode === 'dual') {
+    container.style.height = '690px';
+    const gcmsData = hmMetric === 'zscore' ? HM_GCMS_AREA_Z : HM_GCMS_AREA_RAW;
+    const enoseData = hmMetric === 'zscore' ? HM_ENOSE_Z : HM_ENOSE_RAW;
+
+    const traceDendro = Object.assign({}, DENDRO_TRACE);
+
+    const traceGCMS = {
+      z: gcmsData,
+      x: HM_SAMPLE_INDICES,
+      y: HM_GCMS_NAMES,
+      type: 'heatmap',
+      colorscale: colorscale,
+      zmin: hmMetric === 'zscore' ? -1.8 : 0,
+      zmax: hmMetric === 'zscore' ? 2.2 : 16,
+      xaxis: 'x',
+      yaxis: 'y',
+      colorbar: {
+        title: hmMetric === 'zscore' ? 'GC-MS Z-Score' : '% Area',
+        len: 0.38,
+        y: 0.65
+      },
+      hoverinfo: 'text',
+      hovertext: gcmsData.map((row, rIdx) => 
+        row.map((val, cIdx) => 
+          `<b>${HM_GCMS_NAMES[rIdx]}</b><br>ตัวอย่าง: ${HM_SAMPLES[cIdx]}<br>` +
+          `Z-Score: ${HM_GCMS_AREA_Z[rIdx][cIdx].toFixed(2)}<br>` +
+          `% Area ผงแห้ง: ${HM_GCMS_AREA_RAW[rIdx][cIdx].toFixed(2)}%<br><b>ระดับการส่งกลิ่น:</b> ${HM_GCMS_POTENCY[rIdx][cIdx]}`
+        )
+      )
+    };
+
+    const traceEnose = {
+      z: enoseData,
+      x: HM_SAMPLE_INDICES,
+      y: HM_ENOSE_NAMES,
+      type: 'heatmap',
+      colorscale: colorscale,
+      zmin: hmMetric === 'zscore' ? -1.8 : -50,
+      zmax: hmMetric === 'zscore' ? 2.2 : 225,
+      xaxis: 'x',
+      yaxis: 'y2',
+      colorbar: {
+        title: hmMetric === 'zscore' ? 'eNose Z-Score' : 'mV Signal',
+        len: 0.35,
+        y: 0.18
+      },
+      hoverinfo: 'text',
+      hovertext: enoseData.map((row, rIdx) => 
+        row.map((val, cIdx) => 
+          `<b>${HM_ENOSE_NAMES[rIdx]}</b><br>ตัวอย่าง: ${HM_SAMPLES[cIdx]}<br>` +
+          `Z-Score: ${HM_ENOSE_Z[rIdx][cIdx].toFixed(2)}<br>` +
+          `Net Signal จริง: ${HM_ENOSE_RAW[rIdx][cIdx].toFixed(1)} mV`
+        )
+      )
+    };
+
+    const layout = {
+      paper_bgcolor: '#ffffff',
+      plot_bgcolor: '#ffffff',
+      margin: { l: 230, r: 60, b: 110, t: 30 },
+      yaxis3: {
+        domain: [0.88, 1.0],
+        showticklabels: false,
+        showgrid: false,
+        zeroline: false,
+        fixedrange: true,
+        title: { text: '<b>Sample Tree</b>', font: { size: 10, color: '#0f2617' } }
+      },
+      yaxis: {
+        domain: [0.46, 0.86],
+        autorange: 'reversed',
+        title: { text: '<b>PANEL A: GC-MS Key Volatiles (ผงแห้ง)</b>', font: { size: 11, color: '#154c25' } },
+        tickfont: { size: 9.5, color: '#0f2617' }
+      },
+      yaxis2: {
+        domain: [0.0, 0.40],
+        autorange: 'reversed',
+        title: { text: '<b>PANEL B: eNose 10-MOS Sensors (Headspace)</b>', font: { size: 11, color: '#0284c7' } },
+        tickfont: { size: 9.5, color: '#0f2617' }
+      },
+      xaxis: {
+        tickmode: 'array',
+        tickvals: HM_SAMPLE_INDICES,
+        ticktext: HM_SAMPLES,
+        range: [-0.5, 7.5],
+        tickangle: -25,
+        tickfont: { size: 10, color: '#1e3324' },
+        anchor: 'y2'
+      },
+      shapes: [
+        { type: 'line', x0: 1.5, x1: 1.5, y0: 0, y1: 0.86, xref: 'x', yref: 'paper', line: { color: '#000000', width: 2 } }
+      ],
+      annotations: [
+        { x: 0.5, y: -0.22, xref: 'x', yref: 'paper', text: '<b>Hojicha (Roasted)</b>', showarrow: false, font: { color: '#b30000', size: 11 } },
+        { x: 4.5, y: -0.22, xref: 'x', yref: 'paper', text: '<b>Matcha Cultivars (Steamed & Shaded)</b>', showarrow: false, font: { color: '#0044cc', size: 11 } }
+      ]
+    };
+
+    Plotly.react('heatmapPlotContainer', [traceDendro, traceGCMS, traceEnose], layout, { responsive: true, displayModeBar: false });
+  } else if (hmMode === 'gcms') {
+    container.style.height = '500px';
+    const gcmsData = hmMetric === 'zscore' ? HM_GCMS_AREA_Z : HM_GCMS_AREA_RAW;
+    const trace = {
+      z: gcmsData,
+      x: HM_SAMPLE_INDICES,
+      y: HM_GCMS_NAMES,
+      type: 'heatmap',
+      colorscale: colorscale,
+      zmin: hmMetric === 'zscore' ? -1.8 : 0,
+      zmax: hmMetric === 'zscore' ? 2.2 : 16,
+      colorbar: { title: hmMetric === 'zscore' ? 'Z-Score' : '% Area' },
+      hoverinfo: 'text',
+      hovertext: gcmsData.map((row, rIdx) => 
+        row.map((val, cIdx) => 
+          `<b>${HM_GCMS_NAMES[rIdx]}</b><br>ตัวอย่าง: ${HM_SAMPLES[cIdx]}<br>` +
+          `Z-Score: ${HM_GCMS_AREA_Z[rIdx][cIdx].toFixed(2)}<br>` +
+          `% Area ผงแห้ง: ${HM_GCMS_AREA_RAW[rIdx][cIdx].toFixed(2)}%<br><b>ระดับการส่งกลิ่น:</b> ${HM_GCMS_POTENCY[rIdx][cIdx]}`
+        )
+      )
+    };
+    const layout = {
+      margin: { l: 230, r: 60, b: 110, t: 30 },
+      paper_bgcolor: '#ffffff',
+      plot_bgcolor: '#ffffff',
+      yaxis: { autorange: 'reversed', tickfont: { size: 10 } },
+      xaxis: {
+        tickmode: 'array',
+        tickvals: HM_SAMPLE_INDICES,
+        ticktext: HM_SAMPLES,
+        range: [-0.5, 7.5],
+        tickangle: -25,
+        tickfont: { size: 10 }
+      },
+      title: { text: '<b>HS-SPME-GC-MS Key Aroma Volatiles (Dry Powder ONLY)</b>', font: { size: 12.5 } }
+    };
+    Plotly.react('heatmapPlotContainer', [trace], layout, { responsive: true, displayModeBar: false });
+  } else if (hmMode === 'enose') {
+    container.style.height = '420px';
+    const enoseData = hmMetric === 'zscore' ? HM_ENOSE_Z : HM_ENOSE_RAW;
+    const trace = {
+      z: enoseData,
+      x: HM_SAMPLE_INDICES,
+      y: HM_ENOSE_NAMES,
+      type: 'heatmap',
+      colorscale: colorscale,
+      zmin: hmMetric === 'zscore' ? -1.8 : -50,
+      zmax: hmMetric === 'zscore' ? 2.2 : 225,
+      colorbar: { title: hmMetric === 'zscore' ? 'Z-Score' : 'mV Signal' },
+      hoverinfo: 'text',
+      hovertext: enoseData.map((row, rIdx) => 
+        row.map((val, cIdx) => 
+          `<b>${HM_ENOSE_NAMES[rIdx]}</b><br>ตัวอย่าง: ${HM_SAMPLES[cIdx]}<br>` +
+          `Z-Score: ${HM_ENOSE_Z[rIdx][cIdx].toFixed(2)}<br>` +
+          `Net Signal: ${HM_ENOSE_RAW[rIdx][cIdx].toFixed(1)} mV`
+        )
+      )
+    };
+    const layout = {
+      margin: { l: 230, r: 60, b: 110, t: 30 },
+      paper_bgcolor: '#ffffff',
+      plot_bgcolor: '#ffffff',
+      yaxis: { autorange: 'reversed', tickfont: { size: 10 } },
+      xaxis: {
+        tickmode: 'array',
+        tickvals: HM_SAMPLE_INDICES,
+        ticktext: HM_SAMPLES,
+        range: [-0.5, 7.5],
+        tickangle: -25,
+        tickfont: { size: 10 }
+      },
+      title: { text: '<b>eNose 10-MOS Sensor Net Responses (Steady State Cycle 4–7)</b>', font: { size: 12.5 } }
+    };
+    Plotly.react('heatmapPlotContainer', [trace], layout, { responsive: true, displayModeBar: false });
+  } else if (hmMode === 'corr') {
+    container.style.height = '480px';
+    const trace = {
+      z: HM_CORR_MATRIX,
+      x: HM_GCMS_NAMES,
+      y: HM_ENOSE_NAMES,
+      type: 'heatmap',
+      colorscale: colorscale,
+      zmin: -1.0,
+      zmax: 1.0,
+      colorbar: { title: 'Pearson r' },
+      hoverinfo: 'text',
+      hovertext: HM_CORR_MATRIX.map((row, rIdx) => 
+        row.map((val, cIdx) => 
+          `<b>${HM_ENOSE_NAMES[rIdx]}</b><br>✕ ${HM_GCMS_NAMES[cIdx]}<br><b>Pearson r:</b> ${val.toFixed(3)}`
+        )
+      )
+    };
+    const layout = {
+      margin: { l: 230, r: 60, b: 140, t: 30 },
+      paper_bgcolor: '#ffffff',
+      plot_bgcolor: '#ffffff',
+      yaxis: { autorange: 'reversed', tickfont: { size: 10 } },
+      xaxis: { tickangle: -30, tickfont: { size: 9 } },
+      title: { text: '<b>Cross-Modal Correlation Matrix: 10 eNose Sensors vs 14 GC-MS Volatiles</b>', font: { size: 12.5 } }
+    };
+    Plotly.react('heatmapPlotContainer', [trace], layout, { responsive: true, displayModeBar: false });
+  }
+}
+
+function setHeatmapMode(mode) {
+  hmMode = mode;
+  ['btnModeDual', 'btnModeGCMS', 'btnModeEnose', 'btnModeCorr'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById(mode === 'dual' ? 'btnModeDual' : (mode === 'gcms' ? 'btnModeGCMS' : (mode === 'enose' ? 'btnModeEnose' : 'btnModeCorr'))).classList.add('active');
+  renderHeatmapPlot();
+}
+
+function setHeatmapMetric(met) {
+  hmMetric = met;
+  ['btnMetZ', 'btnMetRaw'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById(met === 'zscore' ? 'btnMetZ' : 'btnMetRaw').classList.add('active');
+  renderHeatmapPlot();
+}
+
+// ==================== 3D PCA WORKSPACE SCRIPT ====================
+let currentCycles = [4, 5, 6, 7];
+let shownSamples = {};
+SAMPLES.forEach(s => shownSamples[s] = true);
+let showEll = true;
+
+function init3DChips() {
+  const container = document.getElementById('pcaChipsRow');
+  container.innerHTML = '<span class="tool-label">ตัวอย่างชา:</span>';
+  SAMPLES.forEach(s => {
+    const meta = SAMPLE_META[s];
+    const btn = document.createElement('button');
+    btn.className = 'chip-btn';
+    btn.setAttribute('aria-pressed', 'true');
+    btn.style.color = meta.color;
+    btn.innerHTML = `${SVG_ICONS[s]}<b>${s}</b> <span style="font-size:0.7rem; color:var(--muted)">(${meta.name.split(' ')[0]})</span>`;
+    btn.onclick = () => {
+      shownSamples[s] = !shownSamples[s];
+      btn.setAttribute('aria-pressed', shownSamples[s]);
+      renderPCAPlot();
+    };
+    container.appendChild(btn);
+  });
+}
+
+function createEllipsoidMesh(cx, cy, cz, rx, ry, rz, n = 16) {
+  let x = [], y = [], z = [];
+  for (let i = 0; i <= n; i++) {
+    let lat = (Math.PI * i) / n - Math.PI / 2;
+    let r_lat = Math.cos(lat);
+    let z_val = cz + rz * Math.sin(lat);
+    let rowX = [], rowY = [], rowZ = [];
+    for (let j = 0; j <= n; j++) {
+      let lon = (2 * Math.PI * j) / n;
+      rowX.push(cx + rx * r_lat * Math.cos(lon));
+      rowY.push(cy + ry * r_lat * Math.sin(lon));
+      rowZ.push(z_val);
+    }
+    x.push(rowX); y.push(rowY); z.push(rowZ);
+  }
+  return { x, y, z };
+}
+
+function renderPCAPlot() {
+  const filtered = SCORES_DATA.filter(d => currentCycles.includes(d.cycle));
+  const traces = [];
+  const isTransient = currentCycles.some(c => c <= 3);
+
+  SAMPLES.forEach(s => {
+    if (!shownSamples[s]) return;
+    const meta = SAMPLE_META[s];
+    const pts = filtered.filter(d => d.sample === s);
+    const xs = pts.map(p => p.PC1);
+    const ys = pts.map(p => p.PC2);
+    const zs = pts.map(p => p.PC3);
+
+    const cx = xs.reduce((a,b)=>a+b,0)/xs.length;
+    const cy = ys.reduce((a,b)=>a+b,0)/ys.length;
+    const cz = zs.reduce((a,b)=>a+b,0)/zs.length;
+
+    const maxDx = Math.max(...xs.map(x => Math.abs(x - cx)));
+    const maxDy = Math.max(...ys.map(y => Math.abs(y - cy)));
+    const maxDz = Math.max(...zs.map(z => Math.abs(z - cz)));
+
+    const rx = Math.max(0.20, maxDx * 1.15);
+    const ry = Math.max(0.18, maxDy * 1.15);
+    const rz = Math.max(0.15, maxDz * 1.15);
+
+    let markerConfig = {
+      size: (s === 'G' || s === 'H') ? 7.5 : 6.5,
+      color: meta.color,
+      symbol: meta.symbol_3d,
+      opacity: 0.95
+    };
+
+    if (meta.symbol_3d.includes('-open') || meta.symbol_3d === 'x' || meta.symbol_3d === 'cross') {
+      markerConfig.line = { color: meta.color, width: 3 };
+    } else if (s === 'G') {
+      markerConfig.line = { color: '#854d0e', width: 1.5 };
+    } else {
+      markerConfig.line = { color: '#ffffff', width: 1 };
+    }
+
+    traces.push({
+      type: 'scatter3d',
+      mode: 'markers+text',
+      name: `${s} - ${meta.name}`,
+      showlegend: false,
+      x: xs, y: ys, z: zs,
+      text: pts.map((p, idx) => idx === 0 ? `<b>${s}</b>` : ''),
+      textposition: 'top center',
+      textfont: { family: 'Plus Jakarta Sans', size: 11, color: meta.color },
+      hovertext: pts.map(p => `<b>${s} · ${meta.name}</b><br>กลุ่ม: ${meta.cluster}<br>สารเด่น: ${meta.gcms_top}<br>${s === 'E' ? '<b>TPC:</b> ≈ 1.2 mg GAE/mL<br>' : ''}รอบ: Cycle ${p.cycle} (${p.phase})`),
+      hoverinfo: 'text',
+      marker: markerConfig
+    });
+
+    if (showEll) {
+      const mesh = createEllipsoidMesh(cx, cy, cz, rx, ry, rz);
+      traces.push({
+        type: 'surface',
+        x: mesh.x, y: mesh.y, z: mesh.z,
+        showscale: false,
+        opacity: isTransient ? 0.22 : 0.16,
+        colorscale: [[0, meta.color], [1, meta.color]],
+        hoverinfo: 'skip'
+      });
+    }
+  });
+
+  const layout = {
+    paper_bgcolor: '#ffffff',
+    plot_bgcolor: '#ffffff',
+    margin: { l: 0, r: 0, b: 0, t: 0 },
+    scene: {
+      xaxis: { title: { text: 'แกน 1 · ความแรงของกลิ่น (79.5%)' }, color: '#1e3324', gridcolor: '#e8eee8', backgroundcolor: '#fafdfa', showbackground: true },
+      yaxis: { title: { text: 'แกน 2 · ลักษณะกลิ่น (12.9%)' }, color: '#1e3324', gridcolor: '#e8eee8', backgroundcolor: '#fafdfa', showbackground: true },
+      zaxis: { title: { text: 'แกน 3 · ช่วยแยกกลุ่ม (4.0%)' }, color: '#1e3324', gridcolor: '#e8eee8', backgroundcolor: '#fafdfa', showbackground: true },
+      camera: { eye: { x: 1.6, y: -1.75, z: 0.95 } }
+    }
+  };
+
+  Plotly.react('pcaPlotContainer', traces, layout, { responsive: true, displayModeBar: false });
+}
+
+function set3DCycles(cycles, btn) {
+  currentCycles = cycles;
+  document.querySelectorAll('#pcaPlotContainer').forEach(b => {});
+  document.querySelectorAll('.opt-btn').forEach(b => {
+    if (b.textContent.includes('Cycle') || b.textContent.includes('ตัด')) b.classList.remove('active');
+  });
+  btn.classList.add('active');
+  renderPCAPlot();
+}
+
+function toggleEllipsoids() {
+  showEll = !showEll;
+  renderPCAPlot();
+}
+
+function toggleAll3DSamples() {
+  const allShown = Object.values(shownSamples).every(v => v);
+  SAMPLES.forEach(s => shownSamples[s] = !allShown);
+  document.querySelectorAll('#pcaChipsRow .chip-btn').forEach(c => c.setAttribute('aria-pressed', !allShown));
+  renderPCAPlot();
+}
+
+function set3DCamera(mode) {
+  let eye = { x: 1.6, y: -1.75, z: 0.95 };
+  if (mode === 'top') eye = { x: 0, y: -0.01, z: 2.7 };
+  if (mode === 'side') eye = { x: 0, y: -2.7, z: 0 };
+  Plotly.relayout('pcaPlotContainer', { 'scene.camera.eye': eye });
+  ['btnCamIso', 'btnCamTop', 'btnCamSide'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById(mode === 'iso' ? 'btnCamIso' : (mode === 'top' ? 'btnCamTop' : 'btnCamSide')).classList.add('active');
+}
+
+// Populate Summary Table
+const OAV_SHARE = {"A": [["β-Ionone", 63.8], ["3-Ethyl-2,5-dimethylpyrazine", 18.6], ["Dimethyl sulfide (DMS)", 6.7], ["2-Methylbutanal", 5.2], ["2-Ethyl-3,5-dimethylpyrazine", 2.3], ["3-Methylbutanal", 2.0], ["α-Ionone", 0.6], ["2-Pentylfuran", 0.4], ["Hexanal", 0.2], ["Heptanal", 0.1], ["2-Ethyl-5-methylpyrazine", 0.1], ["2-Methylpyrazine", 0.0], ["(Z)-3-Hexen-1-ol", 0.0]], "B": [["Dimethyl sulfide (DMS)", 28.0], ["2-Methylbutanal", 26.9], ["3-Methylbutanal", 23.4], ["Nonanal", 4.8], ["Decanal", 3.9], ["Octanal", 3.6], ["3-Ethyl-2,5-dimethylpyrazine", 3.1], ["α-Ionone", 3.0], ["Hexanal", 3.0], ["Benzeneacetaldehyde", 0.1]], "C": [["β-Ionone", 78.9], ["2-Methylbutanal", 5.2], ["Dimethyl sulfide (DMS)", 4.8], ["3-Methylbutanal", 4.5], ["Nonanal", 1.7], ["α-Ionone", 1.1], ["3-Ethyl-2,5-dimethylpyrazine", 1.0], ["Octanal", 0.9], ["Heptanal", 0.9], ["Hexanal", 0.7], ["2-Pentylfuran", 0.2], ["Benzeneacetaldehyde", 0.0], ["(Z)-3-Hexen-1-ol", 0.0]], "D": [["β-Ionone", 62.0], ["2-Methylbutanal", 11.8], ["Dimethyl sulfide (DMS)", 11.3], ["3-Methylbutanal", 11.1], ["α-Ionone", 1.0], ["Nonanal", 0.8], ["Heptanal", 0.5], ["Hexanal", 0.5], ["3-Ethyl-2,5-dimethylpyrazine", 0.4], ["Octanal", 0.3], ["Pentanal", 0.2], ["2-Pentylfuran", 0.1], ["Benzeneacetaldehyde", 0.1], ["(Z)-3-Hexen-1-ol", 0.0]], "E": [["β-Ionone", 75.0], ["3-Ethyl-2,5-dimethylpyrazine", 16.8], ["2-Methylbutanal", 6.3], ["2-Pentylfuran", 1.0], ["α-Ionone", 0.4], ["Hexanal", 0.2], ["Heptanal", 0.1], ["2-Methylpyrazine", 0.1], ["2-Ethyl-5-methylpyrazine", 0.1]], "F": [["2-Methylbutanal", 40.0], ["3-Methylbutanal", 26.6], ["Dimethyl sulfide (DMS)", 12.9], ["α-Ionone", 4.7], ["Hexanal", 4.6], ["Nonanal", 3.5], ["2-Ethyl-3,5-dimethylpyrazine", 2.9], ["Heptanal", 2.7], ["Octanal", 1.7], ["Benzeneacetaldehyde", 0.3], ["Butanal", 0.1]], "G": [["β-Ionone", 55.1], ["2-Methylbutanal", 14.8], ["3-Methylbutanal", 13.6], ["Dimethyl sulfide (DMS)", 10.9], ["Nonanal", 1.3], ["α-Ionone", 1.0], ["3-Ethyl-2,5-dimethylpyrazine", 0.9], ["Heptanal", 0.8], ["Hexanal", 0.7], ["Octanal", 0.5], ["Pentanal", 0.2], ["2-Pentylfuran", 0.1], ["Benzeneacetaldehyde", 0.0], ["(Z)-3-Hexen-1-ol", 0.0]], "H": [["Dimethyl sulfide (DMS)", 48.3], ["3-Methylbutanal", 29.5], ["Hexanal", 8.0], ["α-Ionone", 4.5], ["Octanal", 4.3], ["Heptanal", 3.8], ["Pentanal", 1.4], ["(Z)-3-Hexen-1-ol", 0.1]]};
+const OAV_STYLE = {
+  'β-Ionone': ['#7B4BB5','ดอกไม้ม่วง'],
+  '3-Ethyl-2,5-dimethylpyrazine': ['#D55E00','คั่ว/ดิน'],
+  'Dimethyl sulfide (DMS)': ['#009E73','สาหร่าย/อูมามิ'],
+  '2-Methylbutanal': ['#E69F00','มอลต์'],
+  '3-Methylbutanal': ['#8C6D1F','มอลต์/คั่ว'],
+  'Nonanal': ['#2A7DE1','ไข/ซิตรัส'],
+  '2-Pentylfuran': ['#CC79A7','ถั่ว/เขียว'],
+  'α-Ionone': ['#B197D9','ดอกไม้ม่วง'],
+  'Hexanal': ['#8CC63F','หญ้าตัดใหม่']
+};
+const OAV_OTHER = '#c4ccc6';
+function oavBar(code) {
+  const sh = OAV_SHARE[code];
+  if (!sh) return '<div class="oav-bar oav-empty">ยังไม่มีผล GC-MS</div>';
+  let used = 0, segs = '';
+  sh.slice(0, 4).forEach(x => {
+    const st = OAV_STYLE[x[0]] || ['#6b7a70', ''];
+    used += x[1];
+    segs += `<span class="oav-seg" style="width:${x[1]}%;background:${st[0]}" title="${x[0]} (${st[1]}) ${x[1]}%">${x[1] >= 9 ? Math.round(x[1]) + '%' : ''}</span>`;
+  });
+  const rest = Math.max(0, 100 - used);
+  segs += `<span class="oav-seg" style="width:${rest}%;background:${OAV_OTHER};color:#37443b" title="สารอื่นๆ ${rest.toFixed(1)}%">${rest >= 9 ? Math.round(rest) + '%' : ''}</span>`;
+  return `<div class="oav-bar">${segs}</div>`;
+}
+function initMasterTable() {
+  const tbody = document.getElementById('masterTableBody');
+  const rows = [
+    { code: "A", name: "Karigane Hojicha (ก้าน)", cluster: 2, e: "<b>กลิ่นระดับกลาง</b> ดอกไม้หวานของ β-Ionone นำ ตามด้วยกลิ่นคั่วถั่วและดินจากไพราซีน ภาพรวมหอมหวานเนื้อไม้ ไม่ไหม้ขม" },
+    { code: "B", name: "Hikari", cluster: 4, e: "<b>กลิ่นอ่อน</b> ไม่มี β-Ionone กลิ่นหลักเป็นมอลต์ ตามด้วยสาหร่ายเบาๆ ภาพรวมสะอาด ดื่มง่าย" },
+    { code: "C", name: "Asahi", cluster: 1, e: "<b>กลิ่นแรง</b> ดอกไม้หวานลึกจาก β-Ionone เด่นชัดที่สุดในชุด เสริมด้วยมอลต์และสาหร่าย ภาพรวมอูมามิแน่นลึก" },
+    { code: "D", name: "Inome", cluster: 1, e: "<b>กลิ่นระดับกลาง</b> ดอกไม้ของ β-Ionone ตามด้วยมอลต์และสาหร่ายในสัดส่วนใกล้เคียงกัน ภาพรวมสมดุลกลมกล่อม" },
+    { code: "DF", name: "Inome (Suspect)", cluster: 0, e: "<b>กลิ่นอ่อนที่สุดในชุด</b> มีผลจาก eNose เท่านั้น ยังสรุปองค์ประกอบกลิ่นไม่ได้" },
+    { code: "E", name: "Original Hojicha", cluster: 2, e: "<b>กลิ่นแรง</b> กลิ่นคั่วเข้มจากไพราซีนซ้อนกับดอกไม้ของ β-Ionone ภาพรวมคั่วหอมเข้มข้น ค่า TPC ≈ 1.2 mg GAE/mL" },
+    { code: "EF", name: "Original Hojicha (Suspect)", cluster: 0, e: "<b>กลิ่นแรงที่สุดในชุด</b> มีผลจาก eNose เท่านั้น ยังสรุปองค์ประกอบกลิ่นไม่ได้" },
+    { code: "F", name: "Yuhi", cluster: 3, e: "<b>กลิ่นแรง</b> ไม่มี β-Ionone กลิ่นมาจากมอลต์เป็นหลัก ผสมสาหร่ายและหญ้าตัดใหม่ ภาพรวมสดเขียวและฟุ้ง" },
+    { code: "G", name: "Super Premium", cluster: 1, e: "<b>กลิ่นแรง</b> คล้าย Asahi คือดอกไม้ของ β-Ionone นำ แต่มีมอลต์มากกว่า ภาพรวมนุ่ม ซับซ้อน อูมามิหนา" },
+    { code: "H", name: "Ujitanara", cluster: 4, e: "<b>กลิ่นอ่อน</b> ไม่มี β-Ionone กลิ่นหลักเป็นสาหร่ายจาก DMS ตามด้วยมอลต์ ภาพรวมใบไม้อ่อน เขียวสะอาด" }
+  ];
+  const CL = {0: ['bg-c4', 'ไม่มีผล GC-MS'], 1: ['bg-c1', 'Cluster 1 · Ceremonial Umami'], 2: ['bg-c2', 'Cluster 2 · Deep Roasted'], 3: ['bg-c3', 'Cluster 3 · Aromatic Green'], 4: ['bg-c4', 'Cluster 4 · Delicate & Light']};
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td><b>${r.code}</b></td>
+      <td>${SVG_ICONS[r.code]} <b>${r.name}</b></td>
+      <td><span class="cluster-badge ${CL[r.cluster][0]}">${CL[r.cluster][1]}</span></td>
+      <td>${oavBar(r.code)}</td>
+      <td style="font-size:0.78rem; line-height:1.5;">${r.e}</td>
+    </tr>
+  `).join('');
+  document.getElementById('oavLegend').innerHTML = Object.entries(OAV_STYLE).map(([n, v]) =>
+    `<span class="oav-key"><i style="background:${v[0]}"></i>${n} <small>${v[1]}</small></span>`).join('') +
+    `<span class="oav-key"><i style="background:${OAV_OTHER}"></i>สารอื่นๆ</span>`;
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  init3DChips();
+  initMasterTable();
+  renderPCAPlot();
+  renderHeatmapPlot();
+});
+</script>
+</body>
+</html>
